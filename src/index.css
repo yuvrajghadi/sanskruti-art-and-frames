@@ -1,0 +1,176 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'DM Sans', 'Plus Jakarta Sans', system-ui, sans-serif;
+    color: #292D2A;
+    background-color: #F7F5EF;
+  }
+  
+  h1, h2, h3, h4, .font-serif, .serif-italic, .font-headline {
+    font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  }
+}
+
+/* Custom Sleek Scrollbar in warm ivory / bronze */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E8E4DA;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #B47C55;
+}
+
+/* Material Symbols font helper */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom perspective for 3D card tilt */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* Subtle laser scan line animation for generative simulation */
+@keyframes laserSweep {
+  0% {
+    top: 0%;
+    opacity: 0.2;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0.2;
+  }
+}
+
+.animate-laser {
+  animation: laserSweep 2s ease-in-out infinite alternate;
+}
+
+/* AI mesh pulse */
+@keyframes meshGlow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+.animate-mesh {
+  animation: meshGlow 3s ease-in-out infinite;
+}
+
+/* ========================================================================= */
+/* A4 EDITORIAL PRINT STYLESHEET FOR QUOTATION DOSSIER (PHASE 5 STAGE 4)     */
+/* ========================================================================= */
+@page {
+  size: A4 portrait;
+  margin: 14mm 15mm 16mm 15mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #111111 !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Unwrap flex/overflow-hidden containers so multi-page dossiers paginate cleanly */
+  #root,
+  #root > div,
+  main,
+  .print-flow-reset {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .a4-dossier-sheet {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+
+  .print-break-inside-avoid,
+  tr,
+  .dossier-section-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-break-after-avoid,
+  h1,
+  h2,
+  h3,
+  h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .print-ink-clean {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  .a4-dossier-sheet table th,
+  .a4-dossier-sheet table td {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+  }
+}
