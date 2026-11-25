@@ -28,6 +28,7 @@ export interface HeaderProps {
   onNavigateHome?: () => void;
   catalogCount?: number;
   savedQuotationsCount?: number;
+  searchQuery?: string;
   onSearchQuery?: (query: string) => void;
 }
 
@@ -42,11 +43,18 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigateHome,
   catalogCount = 32,
   savedQuotationsCount = 0,
+  searchQuery: externalSearchQuery,
   onSearchQuery,
 }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchVal, setSearchVal] = useState('');
+  const [searchVal, setSearchVal] = useState(externalSearchQuery || '');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  React.useEffect(() => {
+    if (typeof externalSearchQuery === 'string') {
+      setSearchVal(externalSearchQuery);
+    }
+  }, [externalSearchQuery]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const q = e.target.value;
@@ -58,9 +66,13 @@ export const Header: React.FC<HeaderProps> = ({
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (onSearchQuery) {
+      onSearchQuery(searchVal);
+    }
     if (activeTab !== 'catalog') {
       onTabChange('catalog');
     }
+    setIsMobileMenuOpen(false);
   };
 
   const handleCloseSearch = () => {
@@ -81,10 +93,12 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-[1360px] mx-auto px-gutter-lg md:px-page-margin h-20 flex items-center justify-between gap-gutter-md">
         
         {/* Left: Stitch Sanskruti Arts Brand Logo & Monogram */}
-        <div 
+        <button
+          type="button"
           onClick={onNavigateHome ? onNavigateHome : () => onTabChange('catalog')}
-          className="inline-flex items-center gap-gutter-md cursor-pointer select-none group shrink-0"
+          className="inline-flex items-center gap-gutter-md cursor-pointer select-none group shrink-0 text-left"
           title="Sanskruti Arts Atelier — Return to Home"
+          aria-label="Sanskruti Arts — Return to Home"
         >
           {/* Geometric Stitch Frame Logo SVG */}
           <svg 
@@ -108,10 +122,10 @@ export const Header: React.FC<HeaderProps> = ({
               India
             </span>
           </div>
-        </div>
+        </button>
 
         {/* Center: Primary Navigation (Desktop) */}
-        <nav aria-label="Primary Navigation" className="hidden lg:flex items-center gap-gutter-xl">
+        <nav aria-label="Primary Navigation" className="hidden lg:flex items-center gap-4 xl:gap-6 whitespace-nowrap">
           {onNavigateHome && (
             <button
               type="button"
@@ -196,12 +210,14 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Right Utility Cluster: Search Toggle, Active Frame Chip, Contact Us, Reset, Mobile Menu */}
         <div className="flex items-center gap-gutter-sm sm:gap-gutter-md shrink-0">
           
-          {/* Active Selection Chip (Desktop only) */}
+          {/* Active Selection Chip (Wide Desktop only) */}
           {selectedFrame && (
-            <div 
+            <button
+              type="button"
               onClick={() => handleTabClick('configure')}
-              className="hidden xl:flex items-center gap-2 bg-light-surface-container-low border border-light-outline-variant/60 px-3 py-1.5 rounded-sm text-xs cursor-pointer hover:border-accent transition-colors"
+              className="hidden 2xl:flex items-center gap-2 bg-light-surface-container-low border border-light-outline-variant/60 px-3 py-1.5 rounded-sm text-xs cursor-pointer hover:border-accent transition-colors"
               title="Click to customize this selected profile"
+              aria-label={`Customize selected frame ${selectedFrame.name} (#${selectedFrame.id})`}
             >
               <span
                 className="w-2.5 h-2.5 rounded-none border border-black/20 shadow-xs shrink-0"
@@ -213,7 +229,7 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="text-light-secondary font-mono text-[11px]">
                 #{selectedFrame.id}
               </span>
-            </div>
+            </button>
           )}
 
           {/* Search Toggle Button */}
@@ -236,6 +252,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={onReset}
+            aria-label="Reset to default frame configuration"
             title="Reset to default frame configuration"
             className="p-2 text-light-on-surface-variant hover:text-light-primary hover:bg-light-surface-container-low rounded-sm border border-light-outline-variant/60 transition-colors"
           >
@@ -249,7 +266,7 @@ export const Header: React.FC<HeaderProps> = ({
             )}
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center justify-center border border-light-primary text-light-primary px-5 py-2 rounded-sm font-label text-label-sm uppercase tracking-widest transition-colors duration-state-change hover:bg-light-primary hover:text-light-on-primary"
+            className="hidden sm:inline-flex items-center justify-center border border-light-primary text-light-primary px-3.5 xl:px-4 py-2 rounded-sm font-label text-label-sm uppercase tracking-wider xl:tracking-widest whitespace-nowrap transition-colors duration-state-change hover:bg-light-primary hover:text-light-on-primary"
             title={`Direct WhatsApp Helpline: ${WHATSAPP_DISPLAY_PHONE}`}
           >
             <span>Contact Us</span>
@@ -281,20 +298,33 @@ export const Header: React.FC<HeaderProps> = ({
                 type="text" 
                 value={searchVal}
                 onChange={handleSearchChange}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') handleCloseSearch();
+                }}
+                aria-label="Search moulding collections by name or SKU"
                 placeholder="Search moulding collections by name or SKU (e.g. SA-BG-402, Baroque, Gold, Walnut)..." 
                 className="w-full bg-transparent border-0 focus:ring-0 font-body text-body-md text-light-on-surface placeholder:text-light-outline outline-none"
                 autoFocus
               />
             </div>
-            <button 
-              id="search-close-btn"
-              type="button" 
-              aria-label="Close search" 
-              onClick={handleCloseSearch}
-              className="text-light-on-surface-variant hover:text-light-primary p-1"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                id="search-submit-btn"
+                type="submit"
+                className="px-3.5 py-1.5 bg-light-primary hover:bg-forest-deep text-light-on-primary font-label text-xs uppercase tracking-wider font-semibold rounded-sm transition-colors cursor-pointer"
+              >
+                Search
+              </button>
+              <button 
+                id="search-close-btn"
+                type="button" 
+                aria-label="Close search" 
+                onClick={handleCloseSearch}
+                className="text-light-on-surface-variant hover:text-light-primary p-1.5 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </form>
         </div>
       )}

@@ -86,6 +86,14 @@ export function formatQuotationWhatsAppMessage(
       ? customer.notes.trim().slice(0, 140)
       : null;
 
+  const selectedTier = pricing.delivery?.selectedTier ?? pricing.shippingTier;
+  const dispatchLabel =
+    selectedTier === 'pickup'
+      ? 'Mumbai Workshop Pickup'
+      : selectedTier === 'courier'
+      ? 'Art Crate Express'
+      : 'Insured Parcel';
+
   const lines: (string | null)[] = [
     `Namaste Sanskruti Arts Atelier,`,
     `I would like to send a custom framing quotation enquiry.`,
@@ -111,6 +119,7 @@ export function formatQuotationWhatsAppMessage(
     `Taxable Subtotal: ${pricing.formattedSubtotal}`,
     `GST — Provisional Estimate (${Math.round(pricing.gstRate * 100)}%): ${pricing.formattedGst}`,
     `Delivery: To be confirmed by workshop (Excluded)`,
+    `Preferred Dispatch: ${dispatchLabel}`,
     `*Estimated Total (Excl. Delivery): ${pricing.formattedTotal}*`,
     ``,
     `*Customer Details*`,

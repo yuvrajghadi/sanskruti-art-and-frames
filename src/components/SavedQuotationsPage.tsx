@@ -529,7 +529,11 @@ export const SavedQuotationsPage: React.FC<SavedQuotationsPageProps> = ({
 
         {/* Action Feedback Banner */}
         {actionNotice && (
-          <div className="p-3.5 rounded-sm bg-emerald-50 border border-emerald-300 text-xs text-emerald-950 flex items-center justify-between gap-2">
+          <div
+            role="status"
+            aria-live="polite"
+            className="p-3.5 rounded-sm bg-emerald-50 border border-emerald-300 text-xs text-emerald-950 flex items-center justify-between gap-2"
+          >
             <div className="flex items-center gap-2">
               <Check className="w-4 h-4 text-emerald-700 flex-shrink-0" />
               <span>{actionNotice}</span>
@@ -558,8 +562,18 @@ export const SavedQuotationsPage: React.FC<SavedQuotationsPageProps> = ({
                   placeholder="Search by reference (#SA-Q-...) or customer name..."
                   data-testid="quotations-search-input"
                   aria-label="Search saved quotations by reference or customer name"
-                  className="w-full min-h-[40px] pl-9 pr-3 py-2 text-xs sm:text-sm bg-[#FAF8F5] border border-[#C1C8C2] rounded-sm focus:outline-none focus:border-[#1B3B2B] focus:ring-1 focus:ring-[#1B3B2B]"
+                  className="w-full min-h-[40px] pl-9 pr-14 py-2 text-xs sm:text-sm bg-[#FAF8F5] border border-[#C1C8C2] rounded-sm focus:outline-none focus:border-[#1B3B2B] focus:ring-1 focus:ring-[#1B3B2B]"
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Clear quotation search"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-semibold uppercase tracking-wider text-[#9C7A3C] hover:text-[#1B3B2B] px-1.5 py-1 cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
               </div>
 
               {/* Filter by Status */}
@@ -598,7 +612,7 @@ export const SavedQuotationsPage: React.FC<SavedQuotationsPageProps> = ({
 
             {/* Delete-All With Explicit Confirmation Step */}
             <div className="pt-2 border-t border-[#E8E4DA] flex flex-wrap items-center justify-between gap-2 text-xs">
-              <span className="font-mono text-[11px] text-[#5A615C]">
+              <span className="font-mono text-[11px] text-[#5A615C]" aria-live="polite">
                 Showing {filteredQuotations.length} of {totalSaved} saved quotation(s)
               </span>
 
@@ -862,14 +876,14 @@ export const SavedQuotationsPage: React.FC<SavedQuotationsPageProps> = ({
                         type="button"
                         onClick={() => handleConfirmDeleteSingle(q)}
                         data-testid="card-confirm-delete-btn"
-                        className="px-3 py-1.5 bg-red-700 hover:bg-red-800 text-white rounded-sm text-[11px] font-bold cursor-pointer"
+                        className="min-h-[36px] px-3 py-1.5 bg-red-700 hover:bg-red-800 text-white rounded-sm text-[11px] font-bold cursor-pointer"
                       >
                         Confirm Delete
                       </button>
                       <button
                         type="button"
                         onClick={() => setPendingDeleteId(null)}
-                        className="px-3 py-1.5 bg-white border border-[#C1C8C2] text-[#424844] rounded-sm text-[11px] cursor-pointer"
+                        className="min-h-[36px] px-3 py-1.5 bg-white border border-[#C1C8C2] text-[#424844] rounded-sm text-[11px] cursor-pointer"
                       >
                         Cancel
                       </button>

@@ -146,6 +146,7 @@ export interface QuotationReviewPageProps {
   saveFeedback: string | null;
   artworkStorageWarning?: string | null;
   onUpdateCustomer: (customer: CustomerDetails) => void;
+  onUpdateShippingTier?: (tier: 'standard' | 'courier' | 'pickup') => void;
   onSaveSnapshot: (statusOverride?: QuotationStatus) => boolean;
   onCreateNewFromStudio: () => void;
   onReturnToStudio: () => void;
@@ -165,6 +166,7 @@ export const QuotationReviewPage: React.FC<QuotationReviewPageProps> = ({
   saveFeedback,
   artworkStorageWarning,
   onUpdateCustomer,
+  onUpdateShippingTier,
   onSaveSnapshot,
   onCreateNewFromStudio,
   onReturnToStudio,
@@ -196,7 +198,8 @@ export const QuotationReviewPage: React.FC<QuotationReviewPageProps> = ({
     setSubmitAttempted(false);
     setTouchedFields({});
     setWhatsappError(null);
-  }, [quotation?.id]);
+    setShippingTierPref(quotation?.pricing.shippingTier || 'standard');
+  }, [quotation?.id, quotation?.pricing.shippingTier]);
 
   // Hydrate persistent custom artwork from IndexedDB when asset ID is referenced
   useEffect(() => {
@@ -352,8 +355,16 @@ export const QuotationReviewPage: React.FC<QuotationReviewPageProps> = ({
       ...quotation,
       status: effectiveStatus,
       customer: { ...customer },
+      pricing: {
+        ...quotation.pricing,
+        shippingTier: shippingTierPref,
+        delivery: {
+          ...quotation.pricing.delivery,
+          selectedTier: shippingTierPref,
+        },
+      },
     });
-  }, [quotation, spec, displayPricing, customer, validation.isValid]);
+  }, [quotation, spec, displayPricing, customer, validation.isValid, shippingTierPref]);
 
   // Empty / fallback state if no quotation exists (AFTER all hooks to satisfy React Rules of Hooks)
   if (!quotation || !spec || !displayPricing) {
@@ -467,9 +478,9 @@ export const QuotationReviewPage: React.FC<QuotationReviewPageProps> = ({
       data-testid="quotation-review-page"
     >
       {/* Hidden preloader to detect broken artwork URLs safely */}
-      {!artworkLoadFailed && (spec.customArtUrl || spec.artworkImageUrl) && (
+      {!isWaitingCustomArtHydration && !artworkLoadFailed && (resolvedCustomArtUrl || spec.artworkImageUrl) && (
         <img
-          src={spec.customArtUrl || spec.artworkImageUrl}
+          src={resolvedCustomArtUrl || spec.artworkImageUrl}
           alt=""
           className="hidden"
           onError={() => setArtworkLoadFailed(true)}
@@ -1217,8 +1228,12 @@ export const QuotationReviewPage: React.FC<QuotationReviewPageProps> = ({
                       <button
                         key={tier.id}
                         type="button"
-                        onClick={() => setShippingTierPref(tier.id as 'standard' | 'courier' | 'pickup')}
-                        className={`px-2.5 py-2 rounded-sm border text-center font-medium transition-colors cursor-pointer ${
+                        onClick={() => {
+                          const nextTier = tier.id as 'standard' | 'courier' | 'pickup';
+                          setShippingTierPref(nextTier);
+                          onUpdateShippingTier?.(nextTier);
+                        }}
+                        className={`min-h-[42px] px-2.5 py-2 rounded-sm border text-center font-medium transition-colors cursor-pointer ${
                           shippingTierPref === tier.id
                             ? 'bg-[#F7F3EB] border-[#1B3B2B] text-[#1B3B2B] font-semibold'
                             : 'bg-[#FAF8F5] border-[#E8E4DA] text-[#5A615C] hover:bg-white'

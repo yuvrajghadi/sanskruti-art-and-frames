@@ -242,6 +242,7 @@ export function App() {
   const [storageError, setStorageError] = useState<string | null>(null);
   const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
   const [savedQuotationsCount, setSavedQuotationsCount] = useState<number>(() => getSavedQuotations().length);
+  const [catalogSearchQuery, setCatalogSearchQuery] = useState<string>('');
 
   // Hydrate customerDraft and persisted custom artwork when an existing quotation snapshot is loaded on initial mount
   useEffect(() => {
@@ -332,6 +333,26 @@ export function App() {
         ? {
             ...prev,
             customer: { ...updatedCustomer },
+            updatedAt: new Date().toISOString(),
+          }
+        : null
+    );
+  };
+
+  // Persist non-monetary dispatch preference metadata on the quotation snapshot without altering pricing
+  const handleUpdateShippingTier = (tier: 'standard' | 'courier' | 'pickup') => {
+    setActiveQuotation((prev) =>
+      prev
+        ? {
+            ...prev,
+            pricing: {
+              ...prev.pricing,
+              shippingTier: tier,
+              delivery: {
+                ...prev.pricing.delivery,
+                selectedTier: tier,
+              },
+            },
             updatedAt: new Date().toISOString(),
           }
         : null
@@ -638,6 +659,8 @@ export function App() {
       <LandingPage
         onNavigateToConfigurator={handleLandingNavigate}
         savedQuotationsCount={savedQuotationsCount}
+        searchQuery={catalogSearchQuery}
+        onSearchQuery={setCatalogSearchQuery}
       />
     );
   }
@@ -660,6 +683,8 @@ export function App() {
             activeTab={getHeaderActiveTab()}
             catalogCount={framesList.length}
             savedQuotationsCount={savedQuotationsCount}
+            searchQuery={catalogSearchQuery}
+            onSearchQuery={setCatalogSearchQuery}
             onTabChange={handleTabChange}
             onQuickPreset={handleQuickPreset}
             onReset={handleReset}
@@ -668,12 +693,13 @@ export function App() {
         </div>
       )}
 
-      {/* Mobile Tab Navigation Bar (Visible only on screens < md) */}
+      {/* Mobile & Tablet Tab Navigation Bar (Visible on screens < lg, i.e., up to 1023px) */}
       {!isDedicatedPrintView && (
-        <div className="md:hidden flex items-center justify-around bg-light-surface-container-low border-b border-light-outline-variant/60 px-2 py-2 sticky top-20 z-30 shadow-xs print:hidden no-print">
+        <div className="lg:hidden flex items-center justify-around bg-light-surface-container-low border-b border-light-outline-variant/60 px-1.5 py-1.5 sticky top-20 z-30 shadow-xs print:hidden no-print">
         <button
+          type="button"
           onClick={() => navigateTo('/')}
-          className="flex items-center gap-1 px-2 py-1.5 rounded-sm text-[11px] font-semibold text-light-on-surface-variant hover:bg-light-surface-container transition-colors"
+          className="flex items-center justify-center gap-1 min-h-[38px] px-2 py-1.5 rounded-sm text-[11px] font-semibold text-light-on-surface-variant hover:bg-light-surface-container transition-colors"
           title="Return to Home"
         >
           <Home className="w-3.5 h-3.5" />
@@ -681,8 +707,9 @@ export function App() {
         </button>
 
         <button
+          type="button"
           onClick={() => navigateTo('/catalog')}
-          className={`flex items-center gap-1 px-2 py-1.5 rounded-sm text-[11px] font-semibold transition-colors ${
+          className={`flex items-center justify-center gap-1 min-h-[38px] px-2 py-1.5 rounded-sm text-[11px] font-semibold transition-colors ${
             routeInfo.route === 'catalog'
               ? 'bg-light-primary text-light-on-primary shadow-xs'
               : 'text-light-on-surface-variant hover:bg-light-surface-container'
@@ -693,8 +720,9 @@ export function App() {
         </button>
 
         <button
+          type="button"
           onClick={() => navigateTo(selectedFrame ? `/configurator/${selectedFrame.id}` : '/configurator')}
-          className={`flex items-center gap-1 px-2 py-1.5 rounded-sm text-[11px] font-semibold transition-colors ${
+          className={`flex items-center justify-center gap-1 min-h-[38px] px-2 py-1.5 rounded-sm text-[11px] font-semibold transition-colors ${
             routeInfo.route === 'configure' || routeInfo.route === 'studio'
               ? 'bg-light-primary text-light-on-primary shadow-xs'
               : 'text-light-on-surface-variant hover:bg-light-surface-container'
@@ -705,8 +733,9 @@ export function App() {
         </button>
 
         <button
+          type="button"
           onClick={() => navigateTo('/review')}
-          className={`flex items-center gap-1 px-2 py-1.5 rounded-sm text-[11px] font-semibold transition-colors ${
+          className={`flex items-center justify-center gap-1 min-h-[38px] px-2 py-1.5 rounded-sm text-[11px] font-semibold transition-colors ${
             routeInfo.route === 'review' || routeInfo.route === 'quotation'
               ? 'bg-light-primary text-light-on-primary shadow-xs'
               : 'text-light-on-surface-variant hover:bg-light-surface-container'
@@ -716,9 +745,10 @@ export function App() {
         </button>
 
         <button
+          type="button"
           onClick={() => navigateTo('/quotations')}
           data-testid="mobile-bar-saved-quotations"
-          className={`flex items-center gap-1 px-2 py-1.5 rounded-sm text-[11px] font-semibold transition-colors ${
+          className={`flex items-center justify-center gap-1 min-h-[38px] px-2 py-1.5 rounded-sm text-[11px] font-semibold transition-colors ${
             routeInfo.route === 'quotations'
               ? 'bg-light-primary text-light-on-primary shadow-xs'
               : 'text-light-on-surface-variant hover:bg-light-surface-container'
@@ -741,6 +771,9 @@ export function App() {
               <SidebarCatalog
                 frames={framesList}
                 selectedFrame={selectedFrame}
+                externalSearchQuery={catalogSearchQuery}
+                onExternalSearchChange={setCatalogSearchQuery}
+                onNavigateHome={() => navigateTo('/')}
                 onSelectFrame={(frame) => {
                   setSelectedFrame(frame);
                   if (generatedMockup && generatedMockup.frame.id !== frame.id) {
@@ -780,6 +813,7 @@ export function App() {
                 frame={routeInfo.frameId ? (resolveProfile(routeInfo.frameId, framesList) || null) : null}
                 requestedSku={routeInfo.frameId}
                 allFrames={framesList}
+                onNavigateHome={() => navigateTo('/')}
                 onCustomize={(targetFrame) => {
                   setSelectedFrame(targetFrame);
                   if (generatedMockup && generatedMockup.frame.id !== targetFrame.id) {
@@ -877,6 +911,7 @@ export function App() {
                 saveFeedback={saveFeedback}
                 artworkStorageWarning={artworkStorageWarning}
                 onUpdateCustomer={handleUpdateCustomerDraft}
+                onUpdateShippingTier={handleUpdateShippingTier}
                 onSaveSnapshot={handleSaveActiveSnapshot}
                 onCreateNewFromStudio={handleCreateNewFromStudio}
                 onReturnToStudio={() =>

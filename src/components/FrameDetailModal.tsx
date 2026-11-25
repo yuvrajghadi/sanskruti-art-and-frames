@@ -35,6 +35,9 @@ export const FrameDetailModal: React.FC<FrameDetailModalProps> = ({
   return (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="frame-detail-modal-title"
       onClick={onClose}
     >
       <div 
@@ -43,7 +46,9 @@ export const FrameDetailModal: React.FC<FrameDetailModalProps> = ({
       >
         {/* Close Button */}
         <button
+          type="button"
           onClick={onClose}
+          aria-label="Close moulding specification modal"
           className="absolute top-4 right-4 z-20 p-2 text-light-on-surface-variant hover:text-light-primary bg-light-surface-container-lowest/90 hover:bg-light-surface border border-light-outline-variant/60 hover:border-accent rounded-sm transition-colors shadow-xs"
           title="Close specification view"
         >
@@ -102,7 +107,7 @@ export const FrameDetailModal: React.FC<FrameDetailModalProps> = ({
                 <span>{frame.style} Profile</span>
               </div>
 
-              <h2 className="font-headline text-2xl sm:text-3xl font-bold text-light-primary tracking-tight leading-snug">
+              <h2 id="frame-detail-modal-title" className="font-headline text-2xl sm:text-3xl font-bold text-light-primary tracking-tight leading-snug">
                 {frame.name}
               </h2>
 
@@ -152,8 +157,8 @@ export const FrameDetailModal: React.FC<FrameDetailModalProps> = ({
 
               <div className="flex items-center justify-between py-2.5 bg-light-surface-container-low px-3 rounded-sm border border-light-outline-variant/60">
                 <div>
-                  <span className="font-label uppercase tracking-wider text-[11px] text-light-secondary block">Direct Factory Tariff</span>
-                  <span className="font-mono text-[10px] text-light-outline block">+18% GST (HSN 4414)</span>
+                  <span className="font-label uppercase tracking-wider text-[11px] text-light-secondary block">Direct Workshop Tariff</span>
+                  <span className="font-mono text-[10px] text-light-on-surface-variant block">+ Prov. 18% GST Est. (HSN 4414 ref.)</span>
                 </div>
                 <div className="text-right">
                   <span className="font-headline font-bold text-light-primary text-2xl">
@@ -167,7 +172,7 @@ export const FrameDetailModal: React.FC<FrameDetailModalProps> = ({
             {/* Quality Guarantee badge */}
             <div className="p-3 rounded-sm bg-light-surface-container-low border border-light-outline-variant/60 flex items-center gap-2.5 text-xs text-light-on-surface-variant">
               <ShieldCheck className="w-4 h-4 text-accent flex-shrink-0" />
-              <span>Includes zero-tearout pneumatic miter cuts, internal spline reinforcements, and full Pan-India transit insurance.</span>
+              <span>Crafted to order with precision 45° mitered joinery. Custom packaging and Pan-India transit rates are quoted separately by the workshop.</span>
             </div>
           </div>
 

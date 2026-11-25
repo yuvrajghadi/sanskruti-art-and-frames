@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   X, 
   ArrowRight, 
@@ -16,6 +16,8 @@ import { FrameDetailModal } from './FrameDetailModal';
 interface LandingPageProps {
   onNavigateToConfigurator: (initialFrameId?: string, initialTab?: 'home' | 'catalog' | 'configure' | 'studio3d' | 'review' | 'quotations' | 'product') => void;
   savedQuotationsCount?: number;
+  searchQuery?: string;
+  onSearchQuery?: (query: string) => void;
 }
 
 interface FeaturedProfile {
@@ -80,7 +82,12 @@ const FEATURED_STITCH_PROFILES: FeaturedProfile[] = [
   }
 ];
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToConfigurator, savedQuotationsCount = 0 }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({
+  onNavigateToConfigurator,
+  savedQuotationsCount = 0,
+  searchQuery,
+  onSearchQuery,
+}) => {
   // Active collection filter tab ('all' | 'gold' | 'baroque' | 'mahogany')
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('all');
   
@@ -92,16 +99,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToConfigurat
   const [consultNotes, setConsultNotes] = useState('');
   const [consultSuccess, setConsultSuccess] = useState(false);
 
+  useEffect(() => {
+    if (!consultationModalOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setConsultationModalOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [consultationModalOpen]);
+
+  const sampleKitWhatsAppUrl = getIndianWhatsAppUrl(
+    `Namaste Sanskruti Arts! I would like to request a Trade Sample Kit:\n• Studio / Name: ${consultName || 'Prospective Client'}\n• Contact: ${consultEmail || 'Not provided'}\n• Requested Profiles & Delivery City: ${consultNotes || 'Curated corner chevrons'}`
+  );
+
   const handleConsultSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setConsultSuccess(true);
-    setTimeout(() => {
-      setConsultSuccess(false);
-      setConsultationModalOpen(false);
-      setConsultName('');
-      setConsultEmail('');
-      setConsultNotes('');
-    }, 2500);
+    if (typeof window !== 'undefined') {
+      window.open(sampleKitWhatsAppUrl, '_blank', 'noopener,noreferrer');
+    }
   };
 
   // Filtered featured profiles according to selected category
@@ -129,6 +145,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToConfigurat
         activeTab="home"
         catalogCount={FRAME_SAMPLES.length}
         savedQuotationsCount={savedQuotationsCount}
+        searchQuery={searchQuery}
+        onSearchQuery={onSearchQuery}
         onTabChange={(tab) => onNavigateToConfigurator(undefined, tab)}
         onReset={() => {}}
         onNavigateHome={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -219,7 +237,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToConfigurat
                   Curated Profiles
                 </span>
                 <h2 className="font-display text-display-lg-mobile lg:text-display-lg text-light-primary text-balance">
-                  Collections — Editorial Product Grid
+                  Featured Moulding Collections
                 </h2>
               </div>
               <div className="lg:col-span-5 lg:text-right">
@@ -312,17 +330,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToConfigurat
                     className={`${profile.colSpan} ${profile.offsetClass || ''} group flex flex-col gap-gutter-md`}
                   >
                     {/* Transparent High-Res Frame Showcase Box */}
-                    <div 
+                    <button
+                      type="button"
                       onClick={() => handleInspectProfile(profile.mappedId)}
-                      className="bg-light-surface-container-low p-gutter-lg sm:p-gutter-xl border border-light-outline-variant/50 overflow-hidden cursor-pointer"
-                      title={`Inspect ${profile.name} (${profile.sku})`}
+                      className="w-full text-left bg-light-surface-container-low p-gutter-lg sm:p-gutter-xl border border-light-outline-variant/50 overflow-hidden cursor-pointer block"
+                      aria-label={`Inspect ${profile.name} (${profile.sku})`}
                     >
                       <img
                         src={profile.imageSrc}
                         alt={`${profile.name} Decorative Moulding Frame`}
                         className={`w-full ${profile.aspectClass} object-contain transition-transform duration-surface-enter ease-surface-enter group-hover:scale-[1.03]`}
                       />
-                    </div>
+                    </button>
 
                     {/* Meta & Navigation Strip */}
                     <div className="flex flex-wrap items-center justify-between gap-gutter-md pt-gutter-xs border-b border-light-outline-variant/60 pb-gutter-md">
@@ -349,14 +368,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToConfigurat
                         <button
                           type="button"
                           onClick={() => handleInspectProfile(profile.mappedId)}
-                          className="font-label text-label-sm uppercase tracking-widest text-light-on-surface-variant hover:text-light-primary transition-colors underline"
+                          className="min-h-[40px] px-2 py-2 inline-flex items-center font-label text-label-sm uppercase tracking-widest text-light-on-surface-variant hover:text-light-primary transition-colors underline"
                         >
                           Specs
                         </button>
                         <button
                           type="button"
                           onClick={() => onNavigateToConfigurator(profile.mappedId, 'configure')}
-                          className="inline-flex items-center gap-gutter-xs font-label text-label-lg uppercase tracking-widest text-light-primary border-b border-accent pb-1 transition-colors duration-state-change hover:text-light-secondary"
+                          className="min-h-[40px] py-2 inline-flex items-center gap-gutter-xs font-label text-label-lg uppercase tracking-widest text-light-primary border-b border-accent transition-colors duration-state-change hover:text-light-secondary"
                         >
                           <span>Customize</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -660,19 +679,29 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToConfigurat
       {/* MODAL 2: INDIA TRADE SAMPLE KIT & CURATORIAL ENQUIRY MODAL                */}
       {/* ========================================================================= */}
       {consultationModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-light-surface w-full max-w-lg rounded-sm shadow-2xl border border-accent/40 overflow-hidden">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="landing-sample-modal-title"
+          onClick={() => setConsultationModalOpen(false)}
+        >
+          <div
+            className="bg-light-surface w-full max-w-lg rounded-sm shadow-2xl border border-accent/40 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-5 border-b border-light-outline-variant/60 flex items-center justify-between bg-light-surface-container-low">
               <div className="flex items-center gap-2">
                 <Phone className="w-5 h-5 text-accent" />
-                <h3 className="font-headline text-title-lg text-light-primary font-bold">
+                <h3 id="landing-sample-modal-title" className="font-headline text-title-lg text-light-primary font-bold">
                   Request Trade Sample Kit &amp; Inquiry
                 </h3>
               </div>
               <button 
                 type="button"
+                aria-label="Close sample kit modal"
                 onClick={() => setConsultationModalOpen(false)}
-                className="p-1.5 rounded-sm hover:bg-light-surface-container text-light-on-surface-variant"
+                className="p-2 rounded-sm hover:bg-light-surface-container text-light-on-surface-variant cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -699,13 +728,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToConfigurat
 
                   <form onSubmit={handleConsultSubmit} className="space-y-4">
                     <p className="text-xs text-light-on-surface-variant leading-relaxed">
-                      Submit your framing studio, gallery, or project details below. Our senior workshop manager will dispatch samples within 48 hours.
+                      Share your framing studio, requested profiles, and delivery city below to open a pre-filled WhatsApp enquiry with our workshop desk.
                     </p>
                     <div>
-                      <label className="block text-xs uppercase tracking-wider font-semibold text-light-primary mb-1">
+                      <label htmlFor="landing-kit-name" className="block text-xs uppercase tracking-wider font-semibold text-light-primary mb-1">
                         Studio / Client Name
                       </label>
                       <input 
+                        id="landing-kit-name"
                         type="text" 
                         required 
                         value={consultName}
@@ -715,10 +745,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToConfigurat
                       />
                     </div>
                     <div>
-                      <label className="block text-xs uppercase tracking-wider font-semibold text-light-primary mb-1">
+                      <label htmlFor="landing-kit-contact" className="block text-xs uppercase tracking-wider font-semibold text-light-primary mb-1">
                         Business Email or Phone
                       </label>
                       <input 
+                        id="landing-kit-contact"
                         type="text" 
                         required 
                         value={consultEmail}
@@ -728,10 +759,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToConfigurat
                       />
                     </div>
                     <div>
-                      <label className="block text-xs uppercase tracking-wider font-semibold text-light-primary mb-1">
+                      <label htmlFor="landing-kit-notes" className="block text-xs uppercase tracking-wider font-semibold text-light-primary mb-1">
                         Requested Profiles &amp; Delivery City
                       </label>
                       <textarea 
+                        id="landing-kit-notes"
                         rows={3} 
                         value={consultNotes}
                         onChange={(e) => setConsultNotes(e.target.value)}
@@ -757,12 +789,38 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToConfigurat
                   </form>
                 </div>
               ) : (
-                <div className="py-8 text-center space-y-3">
-                  <CheckCircle2 className="w-12 h-12 text-accent mx-auto" />
-                  <h4 className="font-headline text-xl font-bold text-light-primary">Sample Request Received</h4>
-                  <p className="text-xs text-light-on-surface-variant max-w-sm mx-auto">
-                    A representative from Sanskruti Arts will connect with you via WhatsApp/Email to confirm delivery of your corner chevrons.
+                <div className="py-6 text-center space-y-4" data-testid="landing-sample-whatsapp-handoff">
+                  <CheckCircle2 className="w-12 h-12 text-[#25D366] mx-auto" />
+                  <h4 className="font-headline text-xl font-bold text-light-primary">
+                    WhatsApp Opened — Please Press Send
+                  </h4>
+                  <p className="text-xs text-light-on-surface-variant max-w-sm mx-auto leading-relaxed">
+                    WhatsApp ({WHATSAPP_DISPLAY_PHONE}) has been opened with your sample kit enquiry for{' '}
+                    <strong className="text-light-primary">{consultName}</strong>. Your request is not sent or received by Sanskruti Arts until you press Send inside WhatsApp.
                   </p>
+                  <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
+                    <a
+                      href={sampleKitWhatsAppUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-[#25D366] hover:bg-[#20BA5A] text-white text-xs font-bold uppercase tracking-wider rounded-sm transition-colors"
+                    >
+                      Open WhatsApp Again
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setConsultSuccess(false);
+                        setConsultationModalOpen(false);
+                        setConsultName('');
+                        setConsultEmail('');
+                        setConsultNotes('');
+                      }}
+                      className="px-4 py-2 border border-light-outline-variant text-light-primary text-xs font-semibold uppercase tracking-wider rounded-sm hover:bg-light-surface-container cursor-pointer"
+                    >
+                      Close
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

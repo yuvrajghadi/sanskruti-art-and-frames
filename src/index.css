@@ -12,6 +12,24 @@
   h1, h2, h3, h4, .font-serif, .serif-italic, .font-headline {
     font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
   }
+
+  /* Global accessible keyboard focus indicator */
+  *:focus-visible {
+    outline: 2px solid #9C7A3C;
+    outline-offset: 2px;
+  }
+}
+
+/* Respect user reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Custom Sleek Scrollbar in warm ivory / bronze */

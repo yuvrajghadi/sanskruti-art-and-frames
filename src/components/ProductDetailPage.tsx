@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FrameSample } from '../types';
 import { getMouldingFootRateINR } from '../utils/pricing';
 import { getWhatsAppNumber } from '../utils/whatsapp';
@@ -20,6 +20,7 @@ interface ProductDetailPageProps {
   allFrames: FrameSample[];
   onCustomize: (frame: FrameSample) => void;
   onNavigateCatalog: () => void;
+  onNavigateHome?: () => void;
   onSelectFrame: (frame: FrameSample) => void;
 }
 
@@ -29,11 +30,26 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   allFrames,
   onCustomize,
   onNavigateCatalog,
+  onNavigateHome,
   onSelectFrame,
 }) => {
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const [isSampleKitModalOpen, setIsSampleKitModalOpen] = useState(false);
   const [kitForm, setKitForm] = useState({ name: '', organization: '', city: '', phone: '' });
+
+  // Reset gallery index when switching between profiles / companion mouldings
+  useEffect(() => {
+    setActiveGalleryIndex(0);
+  }, [frame?.id]);
+
+  useEffect(() => {
+    if (!isSampleKitModalOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsSampleKitModalOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isSampleKitModalOpen]);
 
   // =========================================================================
   // DEDICATED PRODUCT NOT FOUND STATE (Zero Silent Fallbacks)
@@ -134,20 +150,33 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         <div className="max-w-[1360px] mx-auto px-gutter-lg md:px-page-margin">
           
           {/* Breadcrumb Navigation */}
-          <div className="flex items-center gap-gutter-sm mb-6 lg:mb-8 pb-3 border-b border-light-outline-variant/40 font-label text-label-sm uppercase tracking-widest text-light-on-surface-variant flex-wrap">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-gutter-sm mb-6 lg:mb-8 pb-3 border-b border-light-outline-variant/40 font-label text-label-sm uppercase tracking-widest text-light-on-surface-variant flex-wrap">
+            {onNavigateHome && (
+              <>
+                <button
+                  type="button"
+                  onClick={onNavigateHome}
+                  className="hover:text-light-primary transition-colors cursor-pointer py-1 min-h-[36px]"
+                >
+                  Home
+                </button>
+                <span className="text-light-outline" aria-hidden="true">/</span>
+              </>
+            )}
             <button
+              type="button"
               onClick={onNavigateCatalog}
-              className="hover:text-light-primary transition-colors cursor-pointer"
+              className="hover:text-light-primary transition-colors cursor-pointer py-1 min-h-[36px]"
             >
               Collections
             </button>
-            <span className="text-light-outline">/</span>
+            <span className="text-light-outline" aria-hidden="true">/</span>
             <span className="text-light-on-surface-variant">{frame.style}</span>
-            <span className="text-light-outline">/</span>
+            <span className="text-light-outline" aria-hidden="true">/</span>
             <span className="font-mono text-mono-sm text-light-secondary font-bold">
               #{frame.id}
             </span>
-          </div>
+          </nav>
 
           {/* Asymmetric 12-Column Artifact Stage */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-gutter-xl items-start">
@@ -199,7 +228,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
               {/* Multi-Angle Gallery Thumbnails Strip (Rendered ONLY when multiple distinct images exist) */}
               {galleryImages.length > 1 && (
-                <div className="grid grid-cols-4 gap-2 pt-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 max-w-md">
                   {galleryImages.map((img, idx) => {
                     const isActive = activeGalleryIndex === idx;
                     return (
@@ -264,8 +293,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     </span>
                     <span className="font-mono text-xs text-light-secondary">/ linear ft</span>
                   </div>
-                  <span className="font-mono text-[11px] text-light-outline font-semibold">
-                    +18% GST (HSN 4414)
+                  <span className="font-mono text-[11px] text-light-on-surface-variant font-semibold text-right">
+                    Excl. Prov. 18% GST (HSN 4414 ref.) &amp; Delivery
                   </span>
                 </div>
 
@@ -366,7 +395,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                       Market &amp; Transit
                     </dt>
                     <dd className="font-mono text-light-secondary text-right">
-                      Pan-India Shockproof Transit (INR)
+                      Pan-India Dispatch (Freight Quoted Per Order)
                     </dd>
                   </div>
                 </dl>
@@ -443,7 +472,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-accent" />
-                  <span>Certified 18% GST Invoice &amp; Safe Pan-India Transit</span>
+                  <span>Provisional 18% GST Estimate (Confirmed on Workshop Invoice) &amp; Destination Dispatch Quotes</span>
                 </div>
               </div>
             </div>
@@ -525,6 +554,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     <img
                       src={companion.cornerDetailUrl || companion.thumbnailUrl}
                       alt={companion.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-surface-enter"
                     />
                     <div className="absolute top-2.5 left-2.5">
@@ -569,6 +600,9 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       {isSampleKitModalOpen && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="pdp-kit-modal-title"
           onClick={() => setIsSampleKitModalOpen(false)}
         >
           <div 
@@ -578,7 +612,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             <button
               type="button"
               onClick={() => setIsSampleKitModalOpen(false)}
-              className="absolute top-4 right-4 text-light-on-surface-variant hover:text-light-primary transition-colors cursor-pointer"
+              className="absolute top-4 right-4 p-2 text-light-on-surface-variant hover:text-light-primary transition-colors cursor-pointer"
+              aria-label="Close sample kit modal"
               title="Close modal"
             >
               <X className="w-5 h-5" />
@@ -588,7 +623,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               <span className="font-mono text-mono-sm text-accent uppercase tracking-widest block font-bold">
                 B2B Trade Specifier Programme
               </span>
-              <h2 className="font-headline text-headline-lg-mobile sm:text-headline-lg text-light-primary">
+              <h2 id="pdp-kit-modal-title" className="font-headline text-headline-lg-mobile sm:text-headline-lg text-light-primary">
                 Request Architect's 6″ Sample
               </h2>
               <p className="font-body text-sm text-light-on-surface-variant leading-relaxed">
@@ -598,10 +633,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
             <form onSubmit={handleKitSubmit} className="space-y-4">
               <div>
-                <label className="font-label text-[11px] uppercase tracking-wider text-light-secondary block mb-1">
+                <label htmlFor="pdp-kit-name" className="font-label text-[11px] uppercase tracking-wider text-light-secondary block mb-1">
                   Contact Name *
                 </label>
                 <input
+                  id="pdp-kit-name"
                   type="text"
                   required
                   value={kitForm.name}
@@ -612,10 +648,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </div>
 
               <div>
-                <label className="font-label text-[11px] uppercase tracking-wider text-light-secondary block mb-1">
+                <label htmlFor="pdp-kit-org" className="font-label text-[11px] uppercase tracking-wider text-light-secondary block mb-1">
                   Architecture / Interior Studio
                 </label>
                 <input
+                  id="pdp-kit-org"
                   type="text"
                   value={kitForm.organization}
                   onChange={(e) => setKitForm({ ...kitForm, organization: e.target.value })}
@@ -624,12 +661,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-label text-[11px] uppercase tracking-wider text-light-secondary block mb-1">
+                  <label htmlFor="pdp-kit-city" className="font-label text-[11px] uppercase tracking-wider text-light-secondary block mb-1">
                     City *
                   </label>
                   <input
+                    id="pdp-kit-city"
                     type="text"
                     required
                     value={kitForm.city}
@@ -640,10 +678,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 </div>
 
                 <div>
-                  <label className="font-label text-[11px] uppercase tracking-wider text-light-secondary block mb-1">
+                  <label htmlFor="pdp-kit-phone" className="font-label text-[11px] uppercase tracking-wider text-light-secondary block mb-1">
                     Phone / WhatsApp *
                   </label>
                   <input
+                    id="pdp-kit-phone"
                     type="tel"
                     required
                     value={kitForm.phone}

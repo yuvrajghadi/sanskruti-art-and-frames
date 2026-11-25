@@ -29,9 +29,12 @@ export const Footer: React.FC<FooterProps> = ({
 
           {/* Col 1: Logo & Business Information (5 cols) */}
           <div className="md:col-span-5 flex flex-col gap-gutter-md">
-            <div 
+            <button
+              type="button"
               onClick={onNavigateHome}
-              className={`inline-flex items-center gap-gutter-md ${onNavigateHome ? 'cursor-pointer select-none' : ''}`}
+              disabled={!onNavigateHome}
+              className={`inline-flex items-center gap-gutter-md text-left self-start ${onNavigateHome ? 'cursor-pointer select-none' : 'cursor-default'}`}
+              aria-label="Sanskruti Arts — Return to Home"
             >
               <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true" className="text-bronze-bright shrink-0">
                 <rect x="2" y="2" width="28" height="28" stroke="currentColor" strokeWidth="1.5" />
@@ -46,7 +49,7 @@ export const Footer: React.FC<FooterProps> = ({
                   India • Moulding Atelier
                 </span>
               </div>
-            </div>
+            </button>
 
             <p className="font-body text-body-md text-light-on-primary-container max-w-prose leading-relaxed">
               Indian manufacturer of decorative picture frame mouldings, authentic 24k gold leaf gilding, and architectural profiles for galleries, framing studios, and interior design spaces.
@@ -57,7 +60,7 @@ export const Footer: React.FC<FooterProps> = ({
                 Serving Trade &amp; Collectors Across India (INR)
               </span>
               <span className="font-mono text-mono-sm text-light-on-primary-container">
-                GST Compliant • HSN 4414
+                Provisional Tax Est. • HSN 4414 Ref.
               </span>
             </div>
           </div>
@@ -67,12 +70,12 @@ export const Footer: React.FC<FooterProps> = ({
             <span className="font-label text-label-sm uppercase tracking-widest text-bronze-bright font-bold">
               Explore Atelier
             </span>
-            <ul className="flex flex-col gap-gutter-sm font-body text-body-md text-light-on-primary-container">
+            <ul className="flex flex-col gap-1 font-body text-body-md text-light-on-primary-container">
               <li>
                 <button
                   type="button"
                   onClick={onNavigateHome}
-                  className="hover:text-light-on-primary transition-colors text-left"
+                  className="hover:text-light-on-primary transition-colors text-left py-1.5 min-h-[36px] inline-flex items-center"
                 >
                   Home
                 </button>
@@ -81,7 +84,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={onNavigateCatalog}
-                  className="hover:text-light-on-primary transition-colors text-left"
+                  className="hover:text-light-on-primary transition-colors text-left py-1.5 min-h-[36px] inline-flex items-center"
                 >
                   Moulding Collections
                 </button>
@@ -90,7 +93,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={onNavigateConfigurator}
-                  className="hover:text-light-on-primary transition-colors text-left"
+                  className="hover:text-light-on-primary transition-colors text-left py-1.5 min-h-[36px] inline-flex items-center"
                 >
                   Custom Framing Studio
                 </button>
@@ -99,7 +102,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={onNavigateStudio}
-                  className="hover:text-light-on-primary transition-colors text-left"
+                  className="hover:text-light-on-primary transition-colors text-left py-1.5 min-h-[36px] inline-flex items-center"
                 >
                   3D Raytracing Studio
                 </button>
@@ -108,7 +111,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={onNavigateReview}
-                  className="hover:text-light-on-primary transition-colors text-left"
+                  className="hover:text-light-on-primary transition-colors text-left py-1.5 min-h-[36px] inline-flex items-center"
                 >
                   Atelier Quotation Dossier
                 </button>
@@ -118,7 +121,7 @@ export const Footer: React.FC<FooterProps> = ({
                   <button
                     type="button"
                     onClick={onNavigateQuotations}
-                    className="hover:text-light-on-primary transition-colors text-left"
+                    className="hover:text-light-on-primary transition-colors text-left py-1.5 min-h-[36px] inline-flex items-center"
                   >
                     Saved Quotations Ledger
                   </button>
@@ -168,11 +171,11 @@ export const Footer: React.FC<FooterProps> = ({
           </div>
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-4 h-4 text-bronze-bright shrink-0" />
-            <span>18% GST Invoicing (HSN 4414)</span>
+            <span>Provisional 18% GST Est. (Confirmed on Workshop Invoice)</span>
           </div>
           <div className="flex items-center gap-2.5">
             <Truck className="w-4 h-4 text-bronze-bright shrink-0" />
-            <span>Pan-India Safe Shockproof Delivery</span>
+            <span>Pan-India Crated Dispatch (Quoted Per Destination)</span>
           </div>
         </div>
 

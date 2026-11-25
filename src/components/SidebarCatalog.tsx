@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { FrameSample, FrameCategory } from '../types';
 import { getWholesaleItemForFrame } from '../data/wholesale';
 import { getWhatsAppNumber } from '../utils/whatsapp';
 import { getMouldingFootRateINR } from '../utils/pricing';
+import { resolveProfile } from '../utils/productMapping';
 import { 
   Search, 
   Check, 
@@ -27,6 +28,9 @@ interface SidebarCatalogProps {
   onInspectFrame: (frame: FrameSample) => void;
   onProceedToConfigure?: (frame?: FrameSample) => void;
   onResetStorage?: () => void;
+  onNavigateHome?: () => void;
+  externalSearchQuery?: string;
+  onExternalSearchChange?: (query: string) => void;
   isFullView?: boolean;
 }
 
@@ -39,26 +43,52 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
   onInspectFrame,
   onProceedToConfigure,
   onResetStorage,
+  onNavigateHome,
+  externalSearchQuery,
+  onExternalSearchChange,
   isFullView = false,
 }) => {
   const [activeCategory, setActiveCategory] = useState<FrameCategory>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(externalSearchQuery || '');
   const [sortOption, setSortOption] = useState<SortOption>('default');
   const [isWholesaleMode, setIsWholesaleMode] = useState<boolean>(false);
   const [isSampleKitModalOpen, setIsSampleKitModalOpen] = useState(false);
   const [kitForm, setKitForm] = useState({ name: '', organization: '', city: '', phone: '' });
+
+  useEffect(() => {
+    if (!isSampleKitModalOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsSampleKitModalOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isSampleKitModalOpen]);
+
+  // Synchronize external global header search queries into catalogue search state
+  useEffect(() => {
+    if (typeof externalSearchQuery === 'string' && externalSearchQuery !== searchQuery) {
+      setSearchQuery(externalSearchQuery);
+    }
+  }, [externalSearchQuery]);
+
+  const updateSearchQuery = (nextQuery: string) => {
+    setSearchQuery(nextQuery);
+    onExternalSearchChange?.(nextQuery);
+  };
 
   // Workshop samples count
   const workshopCount = useMemo(() => frames.filter(f => f.isWorkshopSample).length, [frames]);
 
   // Filtered & Sorted frames
   const filteredAndSortedFrames = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    const aliasMatched = query ? resolveProfile(query, frames) : undefined;
+
     const filtered = frames.filter((frame) => {
       const matchesCategory =
         activeCategory === 'all' ||
         (activeCategory === 'workshop' ? Boolean(frame.isWorkshopSample) : frame.category === activeCategory);
       
-      const query = searchQuery.toLowerCase().trim();
       if (!query) return matchesCategory;
 
       const matchesSearch =
@@ -66,7 +96,8 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
         frame.id.toLowerCase().includes(query) ||
         frame.finish.toLowerCase().includes(query) ||
         frame.style.toLowerCase().includes(query) ||
-        frame.material.toLowerCase().includes(query);
+        frame.material.toLowerCase().includes(query) ||
+        (aliasMatched ? aliasMatched.id === frame.id : false);
 
       return matchesCategory && matchesSearch;
     });
@@ -119,13 +150,23 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
         <section className="bg-light-surface-container-low border-b border-light-outline-variant/60 py-10 lg:py-14">
           <div className="max-w-[1360px] mx-auto px-gutter-lg md:px-page-margin">
             {/* Breadcrumb */}
-            <div className="flex items-center gap-gutter-sm mb-4 font-label text-label-sm uppercase tracking-widest text-light-on-surface-variant">
-              <span>Home</span>
-              <span className="text-light-outline">/</span>
+            <nav aria-label="Breadcrumb" className="flex items-center gap-gutter-sm mb-4 font-label text-label-sm uppercase tracking-widest text-light-on-surface-variant flex-wrap">
+              {onNavigateHome ? (
+                <button
+                  type="button"
+                  onClick={onNavigateHome}
+                  className="hover:text-light-primary transition-colors cursor-pointer py-1 min-h-[36px]"
+                >
+                  Home
+                </button>
+              ) : (
+                <span>Home</span>
+              )}
+              <span className="text-light-outline" aria-hidden="true">/</span>
               <span className="text-light-primary font-bold">Moulding Collections</span>
-              <span className="text-light-outline">/</span>
+              <span className="text-light-outline" aria-hidden="true">/</span>
               <span className="font-mono text-mono-sm text-light-secondary">{frames.length} Architectural Profiles</span>
-            </div>
+            </nav>
 
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
               <div className="max-w-3xl space-y-3">
@@ -176,15 +217,16 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => updateSearchQuery(e.target.value)}
+                aria-label="Search moulding profiles by name, wood species, finish, or SKU"
                 placeholder="Search profiles by name, wood species, gold finish, or SKU..."
-                className="w-full pl-10 pr-16 py-2.5 text-xs sm:text-sm font-body bg-light-surface border border-light-outline-variant/60 rounded-sm text-light-on-surface placeholder:text-light-outline focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                className="w-full min-h-[42px] pl-10 pr-16 py-2.5 text-xs sm:text-sm font-body bg-light-surface border border-light-outline-variant/60 rounded-sm text-light-on-surface placeholder:text-light-outline focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
               />
               {searchQuery && (
                 <button
                   type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 font-label text-xs uppercase tracking-wider text-light-secondary hover:text-light-primary"
+                  onClick={() => updateSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 font-label text-xs uppercase tracking-wider text-light-secondary hover:text-light-primary cursor-pointer"
                 >
                   Clear
                 </button>
@@ -226,7 +268,8 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
                 <select
                   value={sortOption}
                   onChange={(e) => setSortOption(e.target.value as SortOption)}
-                  className="appearance-none bg-light-surface border border-light-outline-variant/60 rounded-sm pl-3 pr-8 py-2 text-xs font-label uppercase tracking-wider text-light-on-surface focus:outline-none focus:border-accent cursor-pointer"
+                  aria-label="Sort moulding profiles"
+                  className="appearance-none min-h-[38px] bg-light-surface border border-light-outline-variant/60 rounded-sm pl-3 pr-8 py-2 text-xs font-label uppercase tracking-wider text-light-on-surface focus:outline-none focus:border-accent cursor-pointer"
                 >
                   <option value="default">Curated Order</option>
                   <option value="name-asc">Name: A to Z</option>
@@ -262,7 +305,7 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
                     key={cat.id}
                     type="button"
                     onClick={() => setActiveCategory(cat.id as FrameCategory)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-label uppercase tracking-wider rounded-sm whitespace-nowrap transition-colors ${
+                    className={`min-h-[36px] flex items-center gap-1.5 px-3 py-1.5 text-xs font-label uppercase tracking-wider rounded-sm whitespace-nowrap transition-colors ${
                       isActive
                         ? 'bg-light-primary text-light-on-primary font-bold'
                         : 'bg-light-surface-container-low text-light-on-surface-variant hover:text-light-primary border border-light-outline-variant/60 hover:border-accent'
@@ -303,7 +346,7 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
               type="button"
               onClick={() => {
                 setActiveCategory('all');
-                setSearchQuery('');
+                updateSearchQuery('');
                 setSortOption('default');
               }}
               className="mt-5 px-5 py-2.5 rounded-sm bg-light-primary text-light-on-primary font-label text-xs uppercase tracking-widest hover:bg-forest-deep transition-colors"
@@ -323,7 +366,16 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
               return (
                 <div
                   key={frame.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Select moulding profile ${frame.name} (#${frame.id})`}
                   onClick={() => onSelectFrame(frame)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onSelectFrame(frame);
+                    }
+                  }}
                   className={`group relative flex flex-col bg-light-surface-container-lowest border rounded-sm transition-all duration-state-change cursor-pointer overflow-hidden ${
                     isSelected
                       ? 'border-accent ring-1 ring-accent shadow-sm'
@@ -441,8 +493,8 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
                             </span>
                             <span className="font-mono text-xs text-light-secondary">/ linear ft</span>
                           </div>
-                          <span className="font-mono text-[10px] text-light-outline block">
-                            +18% GST (HSN 4414)
+                          <span className="font-mono text-[10px] text-light-on-surface-variant block">
+                            + Prov. 18% GST Est. · Excl. Delivery
                           </span>
                         </div>
                       )}
@@ -456,7 +508,7 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
                           e.stopPropagation();
                           onInspectFrame(frame);
                         }}
-                        className="flex-1 py-2 px-3 border border-light-outline-variant/60 hover:border-accent text-light-on-surface hover:text-light-primary rounded-sm font-label text-[11px] uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5"
+                        className="flex-1 min-h-[38px] py-2 px-3 border border-light-outline-variant/60 hover:border-accent text-light-on-surface hover:text-light-primary rounded-sm font-label text-[11px] uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5"
                         title="View architectural cross section and technical specifications"
                       >
                         <Eye className="w-3.5 h-3.5 text-accent" />
@@ -529,20 +581,20 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
                   Need Physical Corner Chevrons for Your Studio or Gallery?
                 </h2>
                 <p className="font-body text-body-md text-light-on-primary-container max-w-2xl leading-relaxed">
-                  Our trade sample box includes 6 authentic 6-inch mitered corner chevrons, cross-section profile engineering blueprints, and verified domestic B2B wholesale tariff schedules (HSN 4414).
+                  Our trade sample box includes 6 hand-finished 6-inch mitered corner chevrons, profile specifications, and domestic B2B wholesale tariff guidance (HSN 4414 reference).
                 </p>
                 <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-bronze-bright pt-1">
                   <span className="flex items-center gap-1.5">
                     <Check className="w-3.5 h-3.5 text-accent" />
-                    <span>Real 24k Gold Leaf Chevrons</span>
+                    <span>Hand-Finished Sample Chevrons</span>
                   </span>
                   <span className="flex items-center gap-1.5">
                     <Truck className="w-3.5 h-3.5 text-accent" />
-                    <span>2–4 Day Pan-India Courier</span>
+                    <span>Pan-India Sample Dispatch (Confirmed via WhatsApp)</span>
                   </span>
                   <span className="flex items-center gap-1.5">
                     <ShieldCheck className="w-3.5 h-3.5 text-accent" />
-                    <span>GST Trade Invoiced</span>
+                    <span>Workshop-Confirmed Tax Invoice</span>
                   </span>
                 </div>
               </div>
@@ -579,6 +631,9 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
       {isSampleKitModalOpen && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="catalog-kit-modal-title"
           onClick={() => setIsSampleKitModalOpen(false)}
         >
           <div 
@@ -586,8 +641,10 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <button
+              type="button"
               onClick={() => setIsSampleKitModalOpen(false)}
-              className="absolute top-4 right-4 p-2 text-light-on-surface-variant hover:text-light-primary border border-light-outline-variant/60 rounded-sm"
+              className="absolute top-4 right-4 p-2 text-light-on-surface-variant hover:text-light-primary border border-light-outline-variant/60 rounded-sm cursor-pointer"
+              aria-label="Close sample kit modal"
               title="Close modal"
             >
               <X className="w-4 h-4" />
@@ -597,7 +654,7 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
               <span className="font-label text-label-sm uppercase tracking-widest text-light-secondary">
                 India Trade Sample Program
               </span>
-              <h3 className="font-headline text-2xl font-bold text-light-primary">
+              <h3 id="catalog-kit-modal-title" className="font-headline text-2xl font-bold text-light-primary">
                 Order Architectural Sample Kit
               </h3>
               <p className="font-body text-xs sm:text-sm text-light-on-surface-variant leading-relaxed">
@@ -607,10 +664,11 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
 
             <form onSubmit={handleKitSubmit} className="space-y-4">
               <div>
-                <label className="font-label text-xs uppercase tracking-wider text-light-on-surface block mb-1">
+                <label htmlFor="catalog-kit-name" className="font-label text-xs uppercase tracking-wider text-light-on-surface block mb-1">
                   Full Name *
                 </label>
                 <input
+                  id="catalog-kit-name"
                   type="text"
                   required
                   value={kitForm.name}
@@ -621,10 +679,11 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
               </div>
 
               <div>
-                <label className="font-label text-xs uppercase tracking-wider text-light-on-surface block mb-1">
+                <label htmlFor="catalog-kit-org" className="font-label text-xs uppercase tracking-wider text-light-on-surface block mb-1">
                   Studio / Firm / Gallery Name
                 </label>
                 <input
+                  id="catalog-kit-org"
                   type="text"
                   value={kitForm.organization}
                   onChange={(e) => setKitForm({ ...kitForm, organization: e.target.value })}
@@ -635,10 +694,11 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-label text-xs uppercase tracking-wider text-light-on-surface block mb-1">
+                  <label htmlFor="catalog-kit-city" className="font-label text-xs uppercase tracking-wider text-light-on-surface block mb-1">
                     City / State *
                   </label>
                   <input
+                    id="catalog-kit-city"
                     type="text"
                     required
                     value={kitForm.city}
@@ -648,10 +708,11 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="font-label text-xs uppercase tracking-wider text-light-on-surface block mb-1">
+                  <label htmlFor="catalog-kit-phone" className="font-label text-xs uppercase tracking-wider text-light-on-surface block mb-1">
                     WhatsApp Phone *
                   </label>
                   <input
+                    id="catalog-kit-phone"
                     type="tel"
                     required
                     value={kitForm.phone}

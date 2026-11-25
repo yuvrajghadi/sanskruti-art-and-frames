@@ -240,14 +240,23 @@ export const QuotationDossierView: React.FC<QuotationDossierViewProps> = ({
             <button
               type="button"
               onClick={onNavigateReview}
-              className="px-5 py-2.5 bg-[#1B3B2B] hover:bg-[#032517] text-white font-label text-xs uppercase tracking-widest font-semibold rounded-sm transition-colors cursor-pointer"
+              className="px-5 py-2.5 min-h-[42px] bg-[#1B3B2B] hover:bg-[#032517] text-white font-label text-xs uppercase tracking-widest font-semibold rounded-sm transition-colors cursor-pointer"
             >
               Go to Quotation Review
             </button>
+            {onNavigateQuotations && (
+              <button
+                type="button"
+                onClick={onNavigateQuotations}
+                className="px-5 py-2.5 min-h-[42px] border border-[#9C7A3C] text-[#1B3B2B] bg-[#F7F3EB] hover:bg-[#EDE4D4] font-label text-xs uppercase tracking-widest font-semibold rounded-sm transition-colors cursor-pointer"
+              >
+                Open Saved Quotations
+              </button>
+            )}
             <button
               type="button"
               onClick={onNavigateStudio}
-              className="px-5 py-2.5 border border-[#1B3B2B] text-[#1B3B2B] hover:bg-[#F7F3EB] font-label text-xs uppercase tracking-widest font-semibold rounded-sm transition-colors cursor-pointer"
+              className="px-5 py-2.5 min-h-[42px] border border-[#1B3B2B] text-[#1B3B2B] hover:bg-[#F7F3EB] font-label text-xs uppercase tracking-widest font-semibold rounded-sm transition-colors cursor-pointer"
             >
               Open Framing Studio
             </button>
@@ -856,7 +865,15 @@ export const QuotationDossierView: React.FC<QuotationDossierViewProps> = ({
                       Delivery — To be confirmed by workshop.
                     </strong>
                     <div className="text-[11px] text-[#5A615C]">
-                      Excluded from estimated total. Pan-India crate &amp; insured transit rates are confirmed separately by the workshop.
+                      Preferred dispatch:{' '}
+                      <strong>
+                        {pricing.delivery.selectedTier === 'courier'
+                          ? 'Art Crate Express'
+                          : pricing.delivery.selectedTier === 'pickup'
+                          ? 'Mumbai Workshop Pickup'
+                          : 'Insured Parcel'}
+                      </strong>{' '}
+                      · Excluded from estimated total; transit charges confirmed separately by the workshop.
                     </div>
                   </td>
                   <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-[#9C7A3C]">

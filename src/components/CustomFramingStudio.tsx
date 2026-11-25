@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   FrameSample, 
   DimensionUnit, 
@@ -158,6 +158,14 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
   const [stageMode, setStageMode] = useState<'render' | 'blueprint' | '3d'>(() => 
     viewMode === '3d' ? '3d' : 'render'
   );
+
+  // Sync stageMode cleanly whenever top-level route/viewMode changes (e.g., Header 2D <-> 3D tab navigation)
+  useEffect(() => {
+    setStageMode((prev) => {
+      if (viewMode === '3d') return '3d';
+      return prev === '3d' ? 'render' : prev;
+    });
+  }, [viewMode]);
   const [wallColorPreset, setWallColorPreset] = useState<WallColorPreset>('warm-ivory');
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -310,11 +318,14 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
       <div className="w-full bg-[#F1F4EF] px-4 sm:px-6 lg:px-12 py-3 border-b border-[#E8E4DA] z-20">
         <div className="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-3">
           {/* Dossier Project Title */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-sm border border-[#E8E4DA] shadow-xs">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="font-headline text-lg sm:text-xl font-bold text-[#1B3B2B] leading-tight">
+              Custom Framing Studio
+            </h1>
+            <div className="flex items-center gap-2 bg-white px-2.5 py-1 rounded-sm border border-[#E8E4DA] shadow-xs">
               <span className="w-2 h-2 rounded-full bg-[#1B3B2B] animate-pulse" />
-              <span className="font-mono text-[11px] uppercase tracking-widest text-[#191C1A] font-semibold">
-                Dossier Studio #BA-842
+              <span className="font-mono text-[10px] uppercase tracking-widest text-[#191C1A] font-semibold">
+                Atelier Draft · Dossier Studio #BA-842
               </span>
             </div>
             <div className="hidden sm:flex items-center gap-2 text-xs text-[#424844]">
@@ -333,7 +344,7 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
               <button
                 type="button"
                 onClick={() => handleUnitToggle('in')}
-                className={`px-2.5 py-1 text-xs font-semibold uppercase tracking-wider rounded-xs transition-all ${
+                className={`min-h-[34px] px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-xs transition-all ${
                   unit === 'in'
                     ? 'bg-[#1B3B2B] text-white shadow-xs'
                     : 'text-[#424844] hover:text-[#191C1A]'
@@ -344,7 +355,7 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
               <button
                 type="button"
                 onClick={() => handleUnitToggle('cm')}
-                className={`px-2.5 py-1 text-xs font-semibold uppercase tracking-wider rounded-xs transition-all ${
+                className={`min-h-[34px] px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-xs transition-all ${
                   unit === 'cm'
                     ? 'bg-[#1B3B2B] text-white shadow-xs'
                     : 'text-[#424844] hover:text-[#191C1A]'
@@ -452,15 +463,16 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                   <span className="text-[11px] uppercase tracking-wider text-[#727874] hidden sm:inline font-mono">
                     Wall:
                   </span>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     {(Object.keys(WALL_COLOR_MAP) as WallColorPreset[]).map((preset) => (
                       <button
                         key={preset}
                         type="button"
                         onClick={() => setWallColorPreset(preset)}
-                        className={`w-5 h-5 rounded-full border transition-all ${
+                        aria-label={`Wall backdrop: ${WALL_COLOR_MAP[preset].label}`}
+                        className={`w-7 h-7 rounded-full border transition-all ${
                           wallColorPreset === preset
-                            ? 'ring-2 ring-[#1B3B2B] ring-offset-1 scale-110'
+                            ? 'ring-2 ring-[#1B3B2B] ring-offset-1 scale-105'
                             : 'border-[#E8E4DA] hover:scale-105'
                         }`}
                         style={{ backgroundColor: WALL_COLOR_MAP[preset].hex }}
@@ -473,7 +485,7 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
 
               {/* 3D Lighting Selector (3D Mode) */}
               {stageMode === '3d' && (
-                <div className="flex items-center gap-1.5 pl-2 border-l border-[#E8E4DA]">
+                <div className="flex items-center flex-wrap gap-1.5 pl-2 border-l border-[#E8E4DA]">
                   <span className="text-[11px] uppercase tracking-wider text-[#727874] hidden sm:inline font-mono">
                     Light:
                   </span>
@@ -482,7 +494,7 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                       key={env}
                       type="button"
                       onClick={() => setLighting(env)}
-                      className={`px-2 py-0.5 text-[10px] font-mono uppercase rounded-xs transition-colors ${
+                      className={`min-h-[32px] px-2.5 py-1 text-[11px] font-mono uppercase rounded-xs transition-colors ${
                         lighting === env
                           ? 'bg-[#1B3B2B] text-white font-bold'
                           : 'bg-[#F1F4EF] text-[#424844] hover:bg-[#E8E4DA]'
@@ -507,7 +519,7 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
               <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-sm border border-[#E8E4DA] shadow-xs flex items-center gap-1.5 pointer-events-none z-10">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#1B3B2B]" />
                 <span className="font-mono text-[10px] uppercase tracking-widest text-[#191C1A] font-semibold">
-                  Museum Spec • 100-Yr Archival
+                  2D/3D Atelier Preview
                 </span>
               </div>
 
@@ -516,7 +528,7 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
               </div>
 
               {/* Dimension Callout: Top (Outer Frame Width) */}
-              <div className="absolute top-7 inset-x-0 flex justify-center items-center pointer-events-none z-10">
+              <div className="absolute top-11 sm:top-7 inset-x-0 flex justify-center items-center pointer-events-none z-10">
                 <div className="bg-white/95 px-3 py-0.5 rounded-sm border border-[#E8E4DA] shadow-xs text-[#191C1A] text-[11px] font-mono tracking-wider flex items-center gap-1.5">
                   <Ruler className="w-3 h-3 text-[#727874]" />
                   <span>Outer Width: <strong className="font-bold text-[#1B3B2B]">{outerWidthStr} {unit}</strong></span>
@@ -568,15 +580,15 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
 
             {/* 3D Camera Angles Toolbar (Only visible when in 3D Mode) */}
             {stageMode === '3d' && (
-              <div className="flex items-center justify-between bg-white px-3 py-2 rounded-sm border border-[#E8E4DA] text-xs">
-                <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2.5 bg-white px-3 py-2.5 rounded-sm border border-[#E8E4DA] text-xs">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <span className="font-mono text-[11px] uppercase text-[#727874]">Angle:</span>
                   {(['corner', 'front', 'cross-section', 'perspective'] as CameraAngle[]).map((angle) => (
                     <button
                       key={angle}
                       type="button"
                       onClick={() => setCameraPreset(angle)}
-                      className={`px-2 py-1 text-[11px] font-semibold uppercase rounded-xs transition-colors ${
+                      className={`min-h-[34px] px-2.5 py-1 text-[11px] font-semibold uppercase rounded-xs transition-colors ${
                         cameraPreset === angle
                           ? 'bg-[#1B3B2B] text-white shadow-xs'
                           : 'bg-[#F1F4EF] text-[#424844] hover:bg-[#E8E4DA]'
@@ -586,14 +598,14 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                     </button>
                   ))}
                 </div>
-                <div className="flex items-center gap-1.5 pl-2 border-l border-[#E8E4DA]">
+                <div className="flex flex-wrap items-center gap-1.5 sm:pl-2 sm:border-l sm:border-[#E8E4DA]">
                   <span className="font-mono text-[11px] uppercase text-[#727874]">Patina:</span>
                   {(['pristine', 'antiqued', 'aged'] as PatinaMode[]).map((p) => (
                     <button
                       key={p}
                       type="button"
                       onClick={() => setPatina(p)}
-                      className={`px-2 py-0.5 text-[10px] font-mono uppercase rounded-xs transition-colors ${
+                      className={`min-h-[32px] px-2.5 py-1 text-[10px] font-mono uppercase rounded-xs transition-colors ${
                         patina === p
                           ? 'bg-[#1B3B2B] text-white font-bold'
                           : 'bg-[#F1F4EF] text-[#424844] hover:bg-[#E8E4DA]'
@@ -603,7 +615,7 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                     </button>
                   ))}
                 </div>
-                <label className="flex items-center gap-1.5 text-xs text-[#424844] cursor-pointer">
+                <label className="flex items-center gap-2 min-h-[32px] text-xs text-[#424844] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={isAutoRotate}
@@ -647,18 +659,20 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                     <label htmlFor="art-w-input" className="text-xs uppercase font-semibold tracking-wider text-[#424844]">
                       Artwork Width
                     </label>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
+                        aria-label="Decrease artwork width"
                         onClick={() => handleAdjustWidth(unit === 'in' ? -0.5 : -1)}
-                        className="w-5 h-5 rounded-xs bg-[#F1F4EF] hover:bg-[#E8E4DA] text-[#191C1A] text-xs font-bold flex items-center justify-center"
+                        className="w-8 h-8 rounded-xs bg-[#F1F4EF] hover:bg-[#E8E4DA] text-[#191C1A] text-sm font-bold flex items-center justify-center"
                       >
                         -
                       </button>
                       <button
                         type="button"
+                        aria-label="Increase artwork width"
                         onClick={() => handleAdjustWidth(unit === 'in' ? 0.5 : 1)}
-                        className="w-5 h-5 rounded-xs bg-[#F1F4EF] hover:bg-[#E8E4DA] text-[#191C1A] text-xs font-bold flex items-center justify-center"
+                        className="w-8 h-8 rounded-xs bg-[#F1F4EF] hover:bg-[#E8E4DA] text-[#191C1A] text-sm font-bold flex items-center justify-center"
                       >
                         +
                       </button>
@@ -687,18 +701,20 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                     <label htmlFor="art-h-input" className="text-xs uppercase font-semibold tracking-wider text-[#424844]">
                       Artwork Height
                     </label>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
+                        aria-label="Decrease artwork height"
                         onClick={() => handleAdjustHeight(unit === 'in' ? -0.5 : -1)}
-                        className="w-5 h-5 rounded-xs bg-[#F1F4EF] hover:bg-[#E8E4DA] text-[#191C1A] text-xs font-bold flex items-center justify-center"
+                        className="w-8 h-8 rounded-xs bg-[#F1F4EF] hover:bg-[#E8E4DA] text-[#191C1A] text-sm font-bold flex items-center justify-center"
                       >
                         -
                       </button>
                       <button
                         type="button"
+                        aria-label="Increase artwork height"
                         onClick={() => handleAdjustHeight(unit === 'in' ? 0.5 : 1)}
-                        className="w-5 h-5 rounded-xs bg-[#F1F4EF] hover:bg-[#E8E4DA] text-[#191C1A] text-xs font-bold flex items-center justify-center"
+                        className="w-8 h-8 rounded-xs bg-[#F1F4EF] hover:bg-[#E8E4DA] text-[#191C1A] text-sm font-bold flex items-center justify-center"
                       >
                         +
                       </button>
@@ -802,6 +818,7 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
+                    aria-label="Upload custom artwork image"
                     onChange={handleFileUpload}
                     className="hidden"
                   />
@@ -872,6 +889,7 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                   { id: 'all', label: `All (${allFrames.length})` },
                   { id: 'workshop', label: 'Workshop Originals' },
                   { id: 'ornate-gold', label: 'Ornate Gold' },
+                  { id: 'antique-gilt', label: 'Antique Gilt' },
                   { id: 'classic-wood', label: 'Classic Wood' },
                   { id: 'modern-gallery', label: 'Modern Gallery' },
                 ].map((cat) => (
@@ -879,7 +897,7 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                     key={cat.id}
                     type="button"
                     onClick={() => setMouldingCategory(cat.id)}
-                    className={`px-2.5 py-1 text-xs uppercase tracking-wider rounded-xs font-semibold transition-all ${
+                    className={`min-h-[34px] px-2.5 py-1.5 text-xs uppercase tracking-wider rounded-xs font-semibold transition-all ${
                       mouldingCategory === cat.id
                         ? 'bg-[#1B3B2B] text-white shadow-xs'
                         : 'bg-[#F7F5EF] border border-[#E8E4DA] text-[#424844] hover:text-[#191C1A]'
@@ -966,7 +984,7 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                   </h2>
                 </div>
                 <span className="font-mono text-xs text-[#1B3B2B] font-semibold">
-                  ISO 18916 Certified
+                  Archival Acid-Free Core
                 </span>
               </div>
 
@@ -1161,7 +1179,7 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                   </h3>
                 </div>
                 <span className="font-mono text-xs bg-[#2C523F] px-2.5 py-1 rounded-sm text-[#F7F3EB]">
-                  HSN 4414 (18% GST)
+                  Provisional · HSN 4414 (18% GST)
                 </span>
               </div>
 
@@ -1189,24 +1207,28 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                   <span>Base Subtotal:</span>
                   <span>{formatINR(subtotal)}</span>
                 </div>
-                <div className="flex justify-between items-center text-xs text-[#9C7A3C]">
-                  <span>GST (18% HSN 4414):</span>
+                <div className="flex justify-between items-center text-xs text-[#D4B06A]">
+                  <span>GST (Provisional 18% Est.):</span>
                   <span>{formatINR(gstAmount)}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs text-[#D1E8DB]/80">
+                  <span>Delivery &amp; Crating:</span>
+                  <span>Quoted by workshop (TBD)</span>
                 </div>
               </div>
 
               {/* Total Estimated Price */}
               <div className="pt-3 border-t border-[#2C523F] flex items-end justify-between">
                 <div>
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-[#9C7A3C] block font-semibold">
-                    Bespoke Atelier Total
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-[#CCA563] block font-semibold">
+                    Bespoke Atelier Estimate
                   </span>
                   <span className="font-serif text-2xl sm:text-3xl font-bold text-white leading-none">
                     {formatINR(totalPrice)}
                   </span>
                 </div>
-                <span className="text-[10px] text-[#D1E8DB]/70 font-mono text-right max-w-[150px]">
-                  All inclusive of crating &amp; insured transit
+                <span className="text-[10px] text-[#D1E8DB]/85 font-mono text-right max-w-[175px]">
+                  Excludes delivery · Tax &amp; freight confirmed on workshop quotation
                 </span>
               </div>
 
@@ -1240,7 +1262,7 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
       {/* ------------------------------------------------------------- */}
       {/* BOTTOM STICKY ATELIER VALUATION & CONVERSION ACTION BAR        */}
       {/* ------------------------------------------------------------- */}
-      <div className="sticky bottom-0 w-full bg-white/95 backdrop-blur-md border-t border-[#E8E4DA] py-3.5 px-4 sm:px-6 lg:px-12 shadow-[0_-8px_24px_rgba(25,28,26,0.06)] z-30">
+      <div className="sticky bottom-0 w-full bg-white/95 backdrop-blur-md border-t border-[#E8E4DA] py-2.5 sm:py-3.5 px-4 sm:px-6 lg:px-12 shadow-[0_-8px_24px_rgba(25,28,26,0.06)] z-30">
         <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
           {/* Cost Ledger Summary */}
           <div className="flex flex-wrap items-center gap-y-1 gap-x-4 sm:gap-x-6 text-xs text-[#191C1A] font-mono">
@@ -1259,8 +1281,12 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
               </span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-[#727874]">GST (18%):</span>
+              <span className="text-[#727874]">GST (Prov. 18%):</span>
               <span className="font-bold text-[#9C7A3C]">{formatINR(gstAmount)}</span>
+            </div>
+            <div className="hidden sm:flex items-center gap-1">
+              <span className="text-[#727874]">Delivery:</span>
+              <span className="font-semibold text-[#1B3B2B]">TBD</span>
             </div>
           </div>
 
