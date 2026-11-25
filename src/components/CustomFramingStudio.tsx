@@ -507,74 +507,70 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
               )}
             </div>
 
-            {/* Render Stage Canvas Container */}
+            {/* Render Stage Canvas Container (Bounded Universal Fit-to-Container Viewport) */}
             <div 
-              className="relative w-full aspect-[4/3] rounded-sm overflow-hidden flex items-center justify-center p-4 sm:p-8 transition-colors duration-500 shadow-subtle-card border border-[#E8E4DA]"
+              data-testid="studio-preview-stage"
+              className="relative w-full h-[360px] sm:h-[430px] md:h-[470px] lg:h-[480px] xl:h-[540px] 2xl:h-[580px] rounded-sm overflow-hidden flex flex-col transition-colors duration-500 shadow-subtle-card border border-[#E8E4DA]"
               style={{ backgroundColor: WALL_COLOR_MAP[wallColorPreset].hex }}
             >
-              {/* Archival Track Lighting Atmospheric Haze */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-black/5 via-transparent to-white/30 pointer-events-none" />
+              {/* Non-Overlapping Top Stage Telemetry Strip */}
+              <div className="shrink-0 bg-white/95 backdrop-blur-xs border-b border-[#E8E4DA] px-3 py-2 flex flex-wrap items-center justify-between gap-2 z-10">
+                <div className="bg-[#FAF8F5] px-2.5 py-1 rounded-sm border border-[#E8E4DA] flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#1B3B2B]" />
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-[#191C1A] font-semibold">
+                    2D/3D Atelier Preview
+                  </span>
+                </div>
 
-              {/* Floating Architectural Badges */}
-              <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-sm border border-[#E8E4DA] shadow-xs flex items-center gap-1.5 pointer-events-none z-10">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#1B3B2B]" />
-                <span className="font-mono text-[10px] uppercase tracking-widest text-[#191C1A] font-semibold">
-                  2D/3D Atelier Preview
-                </span>
-              </div>
-
-              <div className="absolute top-3 right-3 bg-[#1B3B2B] text-white px-2.5 py-1 rounded-sm shadow-xs font-mono text-[10px] tracking-widest uppercase z-10 font-semibold">
-                Scale: 1:1 Proportions
-              </div>
-
-              {/* Dimension Callout: Top (Outer Frame Width) */}
-              <div className="absolute top-11 sm:top-7 inset-x-0 flex justify-center items-center pointer-events-none z-10">
-                <div className="bg-white/95 px-3 py-0.5 rounded-sm border border-[#E8E4DA] shadow-xs text-[#191C1A] text-[11px] font-mono tracking-wider flex items-center gap-1.5">
+                <div className="bg-[#FAF8F5] px-2.5 py-1 rounded-sm border border-[#E8E4DA] text-[#191C1A] text-[11px] font-mono tracking-wider flex items-center gap-1.5">
                   <Ruler className="w-3 h-3 text-[#727874]" />
-                  <span>Outer Width: <strong className="font-bold text-[#1B3B2B]">{outerWidthStr} {unit}</strong></span>
+                  <span>
+                    Outer: <strong className="font-bold text-[#1B3B2B]">{outerWidthStr} × {outerHeightStr} {unit}</strong>
+                  </span>
+                </div>
+
+                <div className="bg-[#1B3B2B] text-white px-2.5 py-1 rounded-sm font-mono text-[10px] tracking-widest uppercase font-semibold">
+                  Scale: 1:1 Proportions
                 </div>
               </div>
 
-              {/* Dimension Callout: Right (Outer Frame Height) */}
-              <div className="absolute right-3 inset-y-0 flex justify-center items-center pointer-events-none z-10 [writing-mode:vertical-rl]">
-                <div className="bg-white/95 px-2 py-2 rounded-sm border border-[#E8E4DA] shadow-xs text-[#191C1A] text-[11px] font-mono tracking-wider flex items-center gap-1.5 rotate-180">
-                  <Ruler className="w-3 h-3 text-[#727874]" />
-                  <span>Outer Height: <strong className="font-bold text-[#1B3B2B]">{outerHeightStr} {unit}</strong></span>
+              {/* Active Renderer Sub-Component Stage Viewport */}
+              <div className="flex-1 min-h-0 w-full relative overflow-hidden flex items-center justify-center">
+                {/* Archival Track Lighting Atmospheric Haze */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-black/5 via-transparent to-white/30 pointer-events-none z-0" />
+                <div className="relative z-10 w-full h-full flex items-center justify-center">
+                  {stageMode === '3d' ? (
+                    <ThreeFrameViewer
+                      frame={activeFrame}
+                      width={width}
+                      height={height}
+                      unit={unit}
+                      mat={selectedMat}
+                      artwork={selectedArtwork}
+                      customArtUrl={customArtUrl}
+                      artworkFit={artworkFit}
+                      lighting={lighting}
+                      cameraPreset={cameraPreset}
+                      patina={patina}
+                      isAutoRotate={isAutoRotate}
+                    />
+                  ) : (
+                    <FrameCanvas2D
+                      frame={activeFrame}
+                      width={width}
+                      height={height}
+                      unit={unit}
+                      mat={selectedMat}
+                      artwork={selectedArtwork}
+                      customArtUrl={customArtUrl}
+                      canvasSubMode={stageMode}
+                      artworkFit={artworkFit}
+                      wallColorHex={WALL_COLOR_MAP[wallColorPreset].hex}
+                      showDimensions={false}
+                      compactStage={true}
+                    />
+                  )}
                 </div>
-              </div>
-
-              {/* Active Renderer Sub-Component */}
-              <div className="w-full h-full flex items-center justify-center relative z-0">
-                {stageMode === '3d' ? (
-                  <ThreeFrameViewer
-                    frame={activeFrame}
-                    width={width}
-                    height={height}
-                    unit={unit}
-                    mat={selectedMat}
-                    artwork={selectedArtwork}
-                    customArtUrl={customArtUrl}
-                    artworkFit={artworkFit}
-                    lighting={lighting}
-                    cameraPreset={cameraPreset}
-                    patina={patina}
-                    isAutoRotate={isAutoRotate}
-                  />
-                ) : (
-                  <FrameCanvas2D
-                    frame={activeFrame}
-                    width={width}
-                    height={height}
-                    unit={unit}
-                    mat={selectedMat}
-                    artwork={selectedArtwork}
-                    customArtUrl={customArtUrl}
-                    canvasSubMode={stageMode}
-                    artworkFit={artworkFit}
-                    wallColorHex={WALL_COLOR_MAP[wallColorPreset].hex}
-                    showDimensions={false}
-                  />
-                )}
               </div>
             </div>
 

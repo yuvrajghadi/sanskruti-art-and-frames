@@ -695,7 +695,7 @@ export function App() {
 
       {/* Mobile & Tablet Tab Navigation Bar (Visible on screens < lg, i.e., up to 1023px) */}
       {!isDedicatedPrintView && (
-        <div className="lg:hidden flex items-center justify-around bg-light-surface-container-low border-b border-light-outline-variant/60 px-1.5 py-1.5 sticky top-20 z-30 shadow-xs print:hidden no-print">
+        <div className="xl:hidden flex items-center justify-around bg-light-surface-container-low border-b border-light-outline-variant/60 px-1.5 py-1.5 sticky top-20 z-30 shadow-xs print:hidden no-print">
         <button
           type="button"
           onClick={() => navigateTo('/')}

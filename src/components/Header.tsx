@@ -125,7 +125,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         {/* Center: Primary Navigation (Desktop) */}
-        <nav aria-label="Primary Navigation" className="hidden lg:flex items-center gap-4 xl:gap-6 whitespace-nowrap">
+        <nav aria-label="Primary Navigation" className="hidden xl:flex items-center gap-4 2xl:gap-6 whitespace-nowrap">
           {onNavigateHome && (
             <button
               type="button"
@@ -277,7 +277,7 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             aria-label="Toggle mobile menu"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden p-2 text-light-on-surface hover:text-light-primary rounded-sm border border-light-outline-variant/60"
+            className="xl:hidden p-2 text-light-on-surface hover:text-light-primary rounded-sm border border-light-outline-variant/60"
           >
             {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -331,7 +331,7 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Mobile Slide-down Navigation Drawer */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-light-outline-variant/60 bg-light-surface px-gutter-lg py-gutter-lg flex flex-col gap-gutter-md shadow-lg">
+        <div className="xl:hidden border-t border-light-outline-variant/60 bg-light-surface px-gutter-lg py-gutter-lg flex flex-col gap-gutter-md shadow-lg">
           <div className="flex flex-col gap-1 border-b border-light-outline-variant/40 pb-gutter-md">
             {onNavigateHome && (
               <button

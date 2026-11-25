@@ -82,6 +82,19 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
   const previousPointerPositionRef = useRef({ x: 0, y: 0 });
   const initialPinchDistanceRef = useRef<number | null>(null);
 
+  const boundsRef = useRef<{ totalW: number; totalH: number; frameDepth: number }>({
+    totalW: 10,
+    totalH: 10,
+    frameDepth: 0.5,
+  });
+  const cameraPresetRef = useRef<CameraAngle>(cameraPreset);
+  const isAutoRotateRef = useRef<boolean>(isAutoRotate);
+  const baseFitDistanceRef = useRef<number>(18);
+  const fitCameraRef = useRef<(() => void) | null>(null);
+
+  cameraPresetRef.current = cameraPreset;
+  isAutoRotateRef.current = isAutoRotate;
+
   const activeArtUrl = customArtUrl || artwork.imageUrl;
 
   // Update lighting rig based on temperature preset
@@ -125,33 +138,10 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
     }
   }, [lighting]);
 
-  // Update camera angle preset
+  // Update camera angle preset and adapt framing to container + frame dimensions
   useEffect(() => {
-    if (!cameraRef.current || !frameGroupRef.current) return;
-
-    switch (cameraPreset) {
-      case 'corner': // Macro Corner Miter (45°)
-        cameraRef.current.position.set(5.5, 5.5, 9.5);
-        cameraRef.current.lookAt(new THREE.Vector3(2.5, 2.5, 0));
-        frameGroupRef.current.rotation.set(0.1, -0.35, 0);
-        break;
-      case 'front': // Full Frontal Elevation
-        cameraRef.current.position.set(0, 0, 16);
-        cameraRef.current.lookAt(new THREE.Vector3(0, 0, 0));
-        frameGroupRef.current.rotation.set(0, 0, 0);
-        break;
-      case 'cross-section': // CAD Profile Cross-section
-        cameraRef.current.position.set(12, 0, 4);
-        cameraRef.current.lookAt(new THREE.Vector3(0, 0, 0));
-        frameGroupRef.current.rotation.set(0, 1.2, 0);
-        break;
-      case 'perspective': // Wall Eye-Level Perspective
-        cameraRef.current.position.set(-4, -1, 14);
-        cameraRef.current.lookAt(new THREE.Vector3(0, 0, 0));
-        frameGroupRef.current.rotation.set(-0.08, 0.25, 0);
-        break;
-    }
-  }, [cameraPreset]);
+    fitCameraRef.current?.();
+  }, [cameraPreset, isAutoRotate]);
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -232,6 +222,96 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
 
       const totalW = baseWidth + (profileW + matW) * 2;
       const totalH = baseHeight + (profileW + matW) * 2;
+      boundsRef.current = { totalW, totalH, frameDepth };
+
+      // Dynamic aspect-aware camera distance fitting entire outer frame within container frustum
+      const applyFitCamera = () => {
+        const cam = cameraRef.current;
+        const grp = frameGroupRef.current;
+        const cont = mountRef.current;
+        if (!cam || !grp || !cont) return;
+
+        const cw = cont.clientWidth || 600;
+        const ch = cont.clientHeight || 460;
+        const aspectRatio = Math.max(0.25, cw / Math.max(1, ch));
+        cam.aspect = aspectRatio;
+
+        const { totalW: bw, totalH: bh, frameDepth: bd } = boundsRef.current;
+        const preset = cameraPresetRef.current;
+        const autoRot = isAutoRotateRef.current;
+
+        let rotX = 0;
+        let rotY = 0;
+        let camDirX = 0;
+        let camDirY = 0;
+        let camDirZ = 1;
+
+        switch (preset) {
+          case 'front':
+            rotX = 0;
+            rotY = 0;
+            camDirX = 0;
+            camDirY = 0;
+            camDirZ = 1;
+            break;
+          case 'cross-section':
+            rotX = 0.08;
+            rotY = 0.96;
+            camDirX = 0.22;
+            camDirY = 0.08;
+            camDirZ = 0.97;
+            break;
+          case 'perspective':
+            rotX = -0.08;
+            rotY = 0.28;
+            camDirX = -0.18;
+            camDirY = -0.05;
+            camDirZ = 0.98;
+            break;
+          case 'corner':
+          default:
+            rotX = 0.14;
+            rotY = -0.34;
+            camDirX = 0.22;
+            camDirY = 0.16;
+            camDirZ = 0.96;
+            break;
+        }
+
+        grp.rotation.set(rotX, rotY, 0);
+
+        const vFovRad = (cam.fov * Math.PI) / 180;
+        const tanHalfV = Math.tan(vFovRad / 2);
+        const tanHalfH = tanHalfV * aspectRatio;
+
+        // Account for preset rotation and 360-degree yaw radius when auto-rotating
+        const effW = autoRot
+          ? Math.hypot(bw, bd)
+          : Math.abs(bw * Math.cos(rotY)) + Math.abs(bd * Math.sin(rotY));
+        const projDepth = autoRot
+          ? Math.hypot(bw, bd)
+          : Math.abs(bw * Math.sin(rotY)) + Math.abs(bd * Math.cos(rotY));
+        const effH = Math.abs(bh * Math.cos(rotX)) + Math.abs(projDepth * Math.sin(rotX));
+        const halfDepth = Math.max(projDepth, bd) * 0.5;
+
+        const distV = (effH * 0.5) / tanHalfV + halfDepth;
+        const distH = (effW * 0.5) / tanHalfH + halfDepth;
+        const fitDist = Math.max(distV, distH) * 1.24;
+        baseFitDistanceRef.current = fitDist;
+
+        const targetZ = bd * 0.35;
+        const normLen = Math.hypot(camDirX, camDirY, camDirZ) || 1;
+        cam.position.set(
+          (camDirX / normLen) * fitDist,
+          (camDirY / normLen) * fitDist,
+          targetZ + (camDirZ / normLen) * fitDist
+        );
+        cam.near = Math.max(0.1, fitDist * 0.05);
+        cam.far = Math.max(1000, fitDist * 10);
+        cam.lookAt(new THREE.Vector3(0, 0, targetZ));
+        cam.updateProjectionMatrix();
+      };
+      fitCameraRef.current = applyFitCamera;
 
       // Compute physical material telemetry based on frame profile
       const profile = getFrameMaterialProfile(frame);
@@ -467,9 +547,8 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
         }
       );
 
-      // Initial orientation: angled for corner appreciation
-      frameGroup.rotation.y = -0.3;
-      frameGroup.rotation.x = 0.1;
+      // Fit camera immediately on mount / geometry rebuild
+      applyFitCamera();
 
       // Mouse drag handlers for manual orbiting
       const handleMouseDown = (e: MouseEvent) => {
@@ -517,7 +596,9 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
           const dy = e.touches[0].clientY - e.touches[1].clientY;
           const dist = Math.hypot(dx, dy);
           const delta = (initialPinchDistanceRef.current - dist) * 0.04;
-          cameraRef.current.position.z = Math.max(5, Math.min(25, cameraRef.current.position.z + delta));
+          const minZoom = Math.max(4, baseFitDistanceRef.current * 0.45);
+          const maxZoom = Math.max(45, baseFitDistanceRef.current * 2.5);
+          cameraRef.current.position.z = Math.max(minZoom, Math.min(maxZoom, cameraRef.current.position.z + delta));
           initialPinchDistanceRef.current = dist;
         }
       };
@@ -539,9 +620,11 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
       const handleWheel = (e: WheelEvent) => {
         e.preventDefault();
         if (!cameraRef.current) return;
+        const minZoom = Math.max(4, baseFitDistanceRef.current * 0.45);
+        const maxZoom = Math.max(45, baseFitDistanceRef.current * 2.5);
         cameraRef.current.position.z = Math.max(
-          5,
-          Math.min(25, cameraRef.current.position.z + e.deltaY * 0.015)
+          minZoom,
+          Math.min(maxZoom, cameraRef.current.position.z + e.deltaY * 0.015)
         );
       };
       domElement.addEventListener('wheel', handleWheel, { passive: false });
@@ -562,10 +645,9 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
       const handleResize = () => {
         if (!container || !camera || !renderer) return;
         const w = container.clientWidth || 600;
-        const h = container.clientHeight || 500;
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
+        const h = container.clientHeight || 460;
         renderer.setSize(w, h);
+        applyFitCamera();
       };
 
       let resizeObserver: ResizeObserver | null = null;
@@ -595,6 +677,7 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
         domElement.removeEventListener('wheel', handleWheel);
 
         // Exhaustive Three.js GPU resource disposal
+        fitCameraRef.current = null;
         disposeThreeNode(scene);
         renderer.dispose();
 
@@ -608,7 +691,7 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
   }, [frame, width, height, unit, mat, activeArtUrl, artworkFit, isAutoRotate, patina]);
 
   return (
-    <div className="relative w-full h-full min-h-[460px] flex items-center justify-center cursor-grab active:cursor-grabbing">
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing">
       <div ref={mountRef} className="w-full h-full" />
     </div>
   );

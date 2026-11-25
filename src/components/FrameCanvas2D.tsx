@@ -18,6 +18,7 @@ interface FrameCanvas2DProps {
   onSubModeChange?: (mode: 'blueprint' | 'render' | 'exploded') => void;
   wallColorHex?: string;
   artworkFit?: 'fit' | 'fill';
+  compactStage?: boolean;
 }
 
 export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
@@ -34,9 +35,35 @@ export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
   onSubModeChange,
   wallColorHex = '#e8e4da',
   artworkFit = 'fill',
+  compactStage = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [viewportSize, setViewportSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const activeMode = canvasSubMode || 'render';
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      setViewportSize((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
+    };
+
+    measure();
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(measure);
+      ro.observe(el);
+    }
+    window.addEventListener('resize', measure);
+    return () => {
+      if (ro) ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [compactStage]);
 
   // Photometric Reconstructed Molding Texture with Instant Cache
   const [rectifiedTextureUrl, setRectifiedTextureUrl] = useState<string | null>(
@@ -92,6 +119,35 @@ export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
   const artW = vbW - 2 * (fW + mW);
   const artH = vbH - 2 * (fW + mW);
 
+  // Pad SVG viewBox slightly in exploded mode so shifted rails stay completely inside bounds
+  const vbPad = activeMode === 'exploded' ? 28 : 0;
+  const effectiveVbW = vbW + vbPad * 2;
+  const effectiveVbH = vbH + vbPad * 2;
+
+  // Universal fit-to-container scaling across width & height with balanced whitespace
+  const padX = compactStage ? 24 : showDimensions ? 64 : 28;
+  const padY = compactStage ? 24 : showDimensions ? 56 : 28;
+  const availW = viewportSize.w > 0 ? Math.max(80, viewportSize.w - padX) : 0;
+  const availH = viewportSize.h > 0 ? Math.max(80, viewportSize.h - padY) : 0;
+  const fittedBoxStyle: React.CSSProperties =
+    availW > 0 && availH > 0
+      ? (() => {
+          const fitScale = Math.min(availW / effectiveVbW, availH / effectiveVbH);
+          const fittedW = Math.max(48, Math.floor(effectiveVbW * fitScale));
+          const fittedH = Math.max(48, Math.floor(effectiveVbH * fitScale));
+          return {
+            width: `${fittedW}px`,
+            height: `${fittedH}px`,
+            aspectRatio: `${effectiveVbW} / ${effectiveVbH}`,
+          };
+        })()
+      : {
+          width: '100%',
+          maxWidth: '100%',
+          maxHeight: '100%',
+          aspectRatio: `${effectiveVbW} / ${effectiveVbH}`,
+        };
+
   const activeArtUrl = customArtUrl || artwork.imageUrl;
   const activeTextureUrl = rectifiedTextureUrl || frame.cornerDetailUrl || frame.thumbnailUrl || '/mouldings/moulding-1.jpg';
 
@@ -109,11 +165,14 @@ export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
   return (
     <div 
       ref={containerRef}
-      className="relative flex flex-col items-center justify-between w-full h-full p-4 sm:p-6 select-none transition-colors duration-500 overflow-hidden"
+      className={`relative flex flex-col items-center justify-between w-full h-full select-none transition-colors duration-500 overflow-hidden ${
+        compactStage ? 'p-2 sm:p-4' : 'p-4 sm:p-6'
+      }`}
       style={{ backgroundColor: activeMode === 'blueprint' ? '#FAF8F5' : wallColorHex }}
     >
-      {/* Top Header: Frame Info & Outer Dimensions */}
-      <div className="w-full max-w-4xl flex items-center justify-between pb-3 border-b border-[#E8E1D8]/60 bg-white/80 backdrop-blur-md px-4 py-2 rounded-xl mb-2 shadow-xs">
+      {/* Top Header: Frame Info & Outer Dimensions (shown in standalone/review views) */}
+      {!compactStage && (
+        <div className="w-full max-w-4xl flex items-center justify-between pb-3 border-b border-[#E8E1D8]/60 bg-white/80 backdrop-blur-md px-4 py-2 rounded-xl mb-2 shadow-xs shrink-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="w-2.5 h-2.5 rounded-full bg-[#B47C55]" />
           <span className="font-serif font-bold text-sm sm:text-base text-[#1C1917]">
@@ -167,9 +226,15 @@ export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
           </span>
         </div>
       </div>
+      )}
 
       {/* Main Visualizer Viewport */}
-      <div className="flex-1 w-full flex items-center justify-center my-4 relative">
+      <div
+        ref={viewportRef}
+        className={`flex-1 w-full flex items-center justify-center relative overflow-hidden ${
+          compactStage ? 'min-h-0' : 'min-h-[260px] sm:min-h-[340px] my-2'
+        }`}
+      >
         {/* Gallery lighting gradient over wall */}
         {activeMode !== 'blueprint' && (
           <div className="absolute inset-0 bg-gradient-to-tr from-black/15 via-transparent to-white/20 pointer-events-none rounded-2xl" />
@@ -205,22 +270,18 @@ export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
 
         {/* Dynamic SVG Frame Assembly */}
         <div 
-          className={`relative transition-all duration-500 ease-out z-10 ${
-            activeMode === 'exploded' ? 'scale-90' : ''
-          }`}
+          className="relative transition-all duration-300 ease-out z-10 flex items-center justify-center shrink-0"
           style={{
-            width: '100%',
-            maxWidth: '640px',
-            maxHeight: '530px',
-            aspectRatio: `${totalWidthInches} / ${totalHeightInches}`,
+            ...fittedBoxStyle,
             filter: activeMode === 'blueprint' 
-              ? 'drop-shadow(0 15px 25px rgba(28,25,23,0.12))' 
-              : 'drop-shadow(0 25px 35px rgba(0,0,0,0.35)) drop-shadow(0 10px 15px rgba(0,0,0,0.2))'
+              ? 'drop-shadow(0 12px 20px rgba(28,25,23,0.12))' 
+              : 'drop-shadow(0 18px 28px rgba(0,0,0,0.32)) drop-shadow(0 8px 12px rgba(0,0,0,0.18))'
           }}
         >
           <svg
-            viewBox={`0 0 ${vbW} ${vbH}`}
-            className="w-full h-full overflow-visible"
+            viewBox={`${-vbPad} ${-vbPad} ${effectiveVbW} ${effectiveVbH}`}
+            preserveAspectRatio="xMidYMid meet"
+            className="w-full h-full block"
             xmlns="http://www.w3.org/2000/svg"
           >
             <defs>
@@ -755,31 +816,33 @@ export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
       </div>
 
       {/* Bottom Technical Spec Badges (Stitch Screen 2 Reference) */}
-      <div className="w-full max-w-4xl grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-[#E8E1D8]">
-        <div className="flex items-center gap-2.5 p-2.5 bg-[#F4EFEA] rounded-xl border border-[#E8E1D8]/60">
-          <ShieldCheck className="w-4 h-4 text-[#C8933C] flex-shrink-0" />
-          <div className="text-left">
-            <span className="text-[11px] font-bold text-[#1C1917] block">100% Cotton Rag Acid-Free</span>
-            <span className="text-[10px] text-[#78716C] block">Archival barrier against acid migration</span>
+      {!compactStage && (
+        <div className="w-full max-w-4xl grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-[#E8E1D8] shrink-0">
+          <div className="flex items-center gap-2.5 p-2.5 bg-[#F4EFEA] rounded-xl border border-[#E8E1D8]/60">
+            <ShieldCheck className="w-4 h-4 text-[#C8933C] flex-shrink-0" />
+            <div className="text-left">
+              <span className="text-[11px] font-bold text-[#1C1917] block">100% Cotton Rag Acid-Free</span>
+              <span className="text-[10px] text-[#78716C] block">Archival barrier against acid migration</span>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2.5 p-2.5 bg-[#F4EFEA] rounded-xl border border-[#E8E1D8]/60">
-          <Ruler className="w-4 h-4 text-[#C8933C] flex-shrink-0" />
-          <div className="text-left">
-            <span className="text-[11px] font-bold text-[#1C1917] block">1/32" Precision Miter Cut</span>
-            <span className="text-[10px] text-[#78716C] block">Guillotine-pneumatic 45° corner alignment</span>
+          <div className="flex items-center gap-2.5 p-2.5 bg-[#F4EFEA] rounded-xl border border-[#E8E1D8]/60">
+            <Ruler className="w-4 h-4 text-[#C8933C] flex-shrink-0" />
+            <div className="text-left">
+              <span className="text-[11px] font-bold text-[#1C1917] block">1/32" Precision Miter Cut</span>
+              <span className="text-[10px] text-[#78716C] block">Guillotine-pneumatic 45° corner alignment</span>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2.5 p-2.5 bg-[#F4EFEA] rounded-xl border border-[#E8E1D8]/60">
-          <Layers className="w-4 h-4 text-[#C8933C] flex-shrink-0" />
-          <div className="text-left">
-            <span className="text-[11px] font-bold text-[#1C1917] block">{frame.material}</span>
-            <span className="text-[10px] text-[#78716C] block">{frame.finish}</span>
+          <div className="flex items-center gap-2.5 p-2.5 bg-[#F4EFEA] rounded-xl border border-[#E8E1D8]/60">
+            <Layers className="w-4 h-4 text-[#C8933C] flex-shrink-0" />
+            <div className="text-left">
+              <span className="text-[11px] font-bold text-[#1C1917] block">{frame.material}</span>
+              <span className="text-[10px] text-[#78716C] block">{frame.finish}</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
