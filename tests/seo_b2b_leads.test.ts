@@ -28,6 +28,7 @@ import {
   getSavedLeads,
   deleteSavedLead,
   exportLeadsToCsv,
+  sanitizeCsvCell,
   LEADS_STORAGE_KEY,
   MAX_STORED_LEADS,
 } from '../src/utils/leadStorage';
@@ -142,5 +143,16 @@ assert.strictEqual(getSavedLeads().length, MAX_STORED_LEADS);
 assert.strictEqual(deleteSavedLead(getSavedLeads()[0].id), true);
 assert.strictEqual(getSavedLeads().length, MAX_STORED_LEADS - 1);
 console.log('[PASS] 4. LocalStorage lead persistence, CSV export, and 100-entry bound verified');
+
+// --- 5. CSV formula injection guard ---
+assert.strictEqual(sanitizeCsvCell('=SUM(A1)'), "'=SUM(A1)");
+assert.strictEqual(sanitizeCsvCell('+91 9820100000'), "'+91 9820100000");
+assert.strictEqual(sanitizeCsvCell('-1'), "'-1");
+assert.strictEqual(sanitizeCsvCell('@SUM'), "'@SUM");
+assert.strictEqual(sanitizeCsvCell('Ar. Meera Nair'), 'Ar. Meera Nair');
+assert.strictEqual(sanitizeCsvCell('Mumbai, 400001'), 'Mumbai, 400001');
+assert.strictEqual(sanitizeCsvCell(null as any), '');
+assert.strictEqual(sanitizeCsvCell(7450 as any), '7450');
+console.log('[PASS] 5. CSV formula injection guard verified');
 
 console.log('\n[SUCCESS] All SEO, B2B Wholesale & LocalStorage Lead Pipeline checks passed.\n');

@@ -2,7 +2,9 @@
  * Senior QA Functional Audit Suite
  */
 import { FRAME_SAMPLES, MAT_OPTIONS, ARTWORK_OPTIONS, PRESET_DIMENSIONS } from '../src/data/frames';
-import { calculateFramePrice, getAspectRatioLabel } from '../src/utils/pricing';
+import { calculateFramePrice, getAspectRatioLabel, getMouldingFootRateINR } from '../src/utils/pricing';
+import { calculateQuotationPricing } from '../src/types/quotation';
+import { GLAZING_OPTIONS } from '../src/components/CustomFramingStudio';
 import { getFrameMaterialProfile, generateProceduralFrameCanvas } from '../src/utils/frameRendering';
 import { RECONSTRUCTED_MOULDING_REGISTRY } from '../src/utils/mouldingReconstruction';
 import { parseRoute } from '../src/utils/routes';
@@ -24,28 +26,83 @@ console.log('\n=============================================');
 console.log('   SENIOR QA AUDIT: FUNCTIONAL TEST RUNNER   ');
 console.log('=============================================\n');
 
-// 1. Pricing Engine
-console.log('--- SUITE 1: PRICING ENGINE & FORMULA INTEGRITY ---');
+// 1. INR Pricing Engine & Tax Separation
+console.log('--- SUITE 1: PRICING ENGINE & FORMULA INTEGRITY (INR + PROV. 18% GST) ---');
 const vFrame = FRAME_SAMPLES.find(f => f.id === 'GLD-401')!;
+const vFootRate = getMouldingFootRateINR(vFrame); // basePricePerFoot 48 -> ₹420/ft
+const museumGlazing = GLAZING_OPTIONS.find(g => g.id === 'optium')!;
+const standardGlazing = GLAZING_OPTIONS.find(g => g.id === 'clear')!;
 
-// 1.1: 16x20 with 3.5" profile width:
-// Perimeter = 72", Miter waste allowance = 3.5 * 8 = 28". Total inches = 100".
-// Linear feet = 100 / 12 = 8.3 ft. Molding cost = 8.3 * 48 = $398.
-// United inches = 36. Mat cost = 18 + 36 * 0.45 = $34. Glass/Assembly = 25 + 36 * 0.65 = $48.
-// Total Price = 398 + 34 + 48 = $480.
+// 1.1: 16x20 in with 3.5" profile width:
+// Perimeter = 72", Miter waste = 3.5 * 8 = 28" -> 100" -> 8.3 linear ft.
+// Molding = Math.round(8.3 * 420) = ₹3,486.
+// United inches = 36 -> Mat = Math.round(260 + 36 * 14) = ₹764.
+// Glass & Assembly = Math.round(380 + 36 * 22) = ₹1,172.
+// Taxable Subtotal = ₹5,422; 18% GST = ₹976; Final Total = ₹6,398.
 const p1 = calculateFramePrice(vFrame, 16, 20, 'in', MAT_OPTIONS[0]);
-const p1Pass = p1.unitedInches === 36 && p1.linearFeet === 8.3 && p1.moldingCost === 398 && p1.totalPrice === 480;
-recordTest('Pricing Engine', 'Perimeter & miter corner waste allowance (16x20 in)', p1Pass, `Linear feet: ${p1.linearFeet} ft (incl. 28" miter waste), Molding: $${p1.moldingCost}, Mat: $${p1.matCost}, Glass: $${p1.glassAndAssemblyCost}, Total: $${p1.totalPrice}`);
+const p1Pass =
+  vFootRate === 420 &&
+  p1.currency === 'INR' &&
+  p1.unitedInches === 36 &&
+  p1.linearFeet === 8.3 &&
+  p1.moldingCost === 3486 &&
+  p1.matCost === 764 &&
+  p1.glassAndAssemblyCost === 1172 &&
+  p1.basePrice === 5422 &&
+  p1.gstAmount === 976 &&
+  p1.totalPrice === 6398;
+recordTest(
+  'Pricing Engine',
+  'Perimeter, miter waste, subtotal, 18% GST, and total in INR (16x20 in)',
+  p1Pass,
+  `Linear feet: ${p1.linearFeet} ft, Molding: ₹${p1.moldingCost}, Mat: ₹${p1.matCost}, Glass: ₹${p1.glassAndAssemblyCost}, Subtotal: ₹${p1.basePrice}, GST: ₹${p1.gstAmount}, Total: ₹${p1.totalPrice}`
+);
 
 // 1.2: Metric cm Conversion (40.64 cm x 50.8 cm)
 const p2 = calculateFramePrice(vFrame, 40.64, 50.8, 'cm', MAT_OPTIONS[0]);
-const p2Pass = Math.abs(p2.linearFeet - p1.linearFeet) < 0.1 && Math.abs(p2.totalPrice - p1.totalPrice) < 2.0;
-recordTest('Pricing Engine', 'Metric cm conversion accuracy', p2Pass, `Converted linear feet: ${p2.linearFeet} ft, Total: $${p2.totalPrice}`);
+const p2Pass = Math.abs(p2.linearFeet - p1.linearFeet) < 0.1 && Math.abs(p2.totalPrice - p1.totalPrice) <= 2;
+recordTest('Pricing Engine', 'Metric cm conversion accuracy (INR)', p2Pass, `Converted linear feet: ${p2.linearFeet} ft, Total: ₹${p2.totalPrice}`);
 
-// 1.3: Matboard price delta
+// 1.3: Removing Mat reduces Taxable Subtotal by ₹764 AND associated 18% GST by ₹138 (Total delta ₹902)
 const pMatNone = calculateFramePrice(vFrame, 16, 20, 'in', MAT_OPTIONS.find(m => m.id === 'mat-none')!);
-const matPass = pMatNone.matCost === 0 && pMatNone.totalPrice === (p1.totalPrice - p1.matCost);
-recordTest('Pricing Engine', 'Mat option zero-cost delta for Full Bleed (No-mat)', matPass, `Rag mat: $${p1.matCost}, No-mat: $${pMatNone.matCost}, Total diff: $${p1.totalPrice - pMatNone.totalPrice}`);
+const expectedMatRemovedGst = Math.round(pMatNone.basePrice * 0.18);
+const gstDelta = p1.gstAmount - pMatNone.gstAmount;
+const totalDelta = p1.totalPrice - pMatNone.totalPrice;
+const matPass =
+  pMatNone.matCost === 0 &&
+  pMatNone.basePrice === p1.basePrice - p1.matCost &&
+  pMatNone.gstAmount === expectedMatRemovedGst &&
+  gstDelta === 138 &&
+  totalDelta === p1.matCost + gstDelta;
+recordTest(
+  'Pricing Engine',
+  'Mat removal updates matCost, taxable subtotal, and 18% GST delta accurately',
+  matPass,
+  `Mat: ₹${p1.matCost} -> ₹${pMatNone.matCost}, Subtotal: ₹${p1.basePrice} -> ₹${pMatNone.basePrice}, GST: ₹${p1.gstAmount} -> ₹${pMatNone.gstAmount} (-₹${gstDelta}), Total diff: ₹${totalDelta}`
+);
+
+// 1.4: Glazing pricing + tax separation in calculateQuotationPricing (Museum Acrylic +₹1,800)
+const qStd = calculateQuotationPricing(vFrame, 16, 20, 'in', MAT_OPTIONS[0], standardGlazing);
+const qMus = calculateQuotationPricing(vFrame, 16, 20, 'in', MAT_OPTIONS[0], museumGlazing);
+const glazePass =
+  qStd.mouldingCost === 3486 &&
+  qStd.matCost === 764 &&
+  qStd.assemblyCost === 1172 &&
+  qStd.glazingDelta === 0 &&
+  qStd.subtotal === 5422 &&
+  qStd.gstAmount === 976 &&
+  qStd.totalEstimatedAmount === 6398 &&
+  qMus.glazingDelta === 1800 &&
+  qMus.subtotal === 7222 &&
+  qMus.gstAmount === 1300 &&
+  qMus.totalEstimatedAmount === 8522 &&
+  qMus.delivery.amountINR === null;
+recordTest(
+  'Pricing Engine',
+  'Glazing delta (+₹1,800 Museum Acrylic), taxable subtotal, GST, and shipping exclusion',
+  glazePass,
+  `Standard: Subtotal ₹${qStd.subtotal} + GST ₹${qStd.gstAmount} = ₹${qStd.totalEstimatedAmount}; Museum Acrylic: Subtotal ₹${qMus.subtotal} (+₹${qMus.glazingDelta}) + GST ₹${qMus.gstAmount} = ₹${qMus.totalEstimatedAmount}`
+);
 
 // 1.4: Aspect ratio classifications
 const ar1 = getAspectRatioLabel(16, 20); // 4:5 Standard Portrait
@@ -221,3 +278,4 @@ const failed = results.filter(r => r.status === 'FAIL').length;
 console.log('\n=============================================');
 console.log(`TOTAL TESTS: ${total} | PASSED: ${passed} | FAILED: ${failed}`);
 console.log('=============================================\n');
+process.exit(failed > 0 ? 1 : 0);

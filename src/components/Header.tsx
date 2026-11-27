@@ -90,24 +90,24 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-40 bg-light-surface/95 backdrop-blur-md border-b border-light-outline-variant/60 shadow-[0_2px_12px_rgba(3,37,23,0.03)]">
-      <div className="max-w-[1360px] mx-auto px-gutter-lg md:px-page-margin h-20 flex items-center justify-between gap-gutter-md">
+      <div className="max-w-[1360px] mx-auto px-4 sm:px-gutter-lg md:px-page-margin h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-gutter-md">
         
         {/* Left: Stitch Sanskruti Arts Brand Logo & Monogram */}
         <button
           type="button"
           onClick={onNavigateHome ? onNavigateHome : () => onTabChange('catalog')}
-          className="inline-flex items-center gap-gutter-md cursor-pointer select-none group shrink-0 text-left"
+          className="inline-flex items-center gap-2.5 sm:gap-gutter-md cursor-pointer select-none group shrink-0 text-left"
           title="Sanskruti Arts Atelier — Return to Home"
           aria-label="Sanskruti Arts — Return to Home"
         >
           {/* Geometric Stitch Frame Logo SVG */}
           <svg 
-            width="32" 
-            height="32" 
+            width="28" 
+            height="28" 
             viewBox="0 0 32 32" 
             fill="none" 
             aria-hidden="true" 
-            className="text-light-primary shrink-0 transition-transform duration-state-change group-hover:scale-105"
+            className="sm:w-8 sm:h-8 text-light-primary shrink-0 transition-transform duration-state-change group-hover:scale-105"
           >
             <rect x="2" y="2" width="28" height="28" stroke="currentColor" strokeWidth="1.5" />
             <rect x="6" y="6" width="20" height="20" stroke="#9C7A3C" strokeWidth="1" />
@@ -115,10 +115,10 @@ export const Header: React.FC<HeaderProps> = ({
           </svg>
 
           <div className="flex flex-col">
-            <span className="font-headline text-title-lg tracking-wide text-light-primary leading-none">
+            <span className="font-headline text-lg sm:text-title-lg tracking-wide text-light-primary leading-none whitespace-nowrap">
               Sanskruti Arts
             </span>
-            <span className="font-label text-label-sm uppercase text-light-secondary tracking-widest mt-0.5">
+            <span className="font-label text-[10px] sm:text-label-sm uppercase text-light-secondary tracking-widest mt-0.5">
               India
             </span>
           </div>

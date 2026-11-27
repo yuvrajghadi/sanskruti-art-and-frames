@@ -34,6 +34,7 @@ interface SidebarCatalogProps {
   onExternalSearchChange?: (query: string) => void;
   isFullView?: boolean;
   initialWholesaleMode?: boolean;
+  initialCategory?: FrameCategory;
 }
 
 type SortOption = 'default' | 'name-asc' | 'price-asc' | 'price-desc' | 'width-asc' | 'width-desc';
@@ -50,8 +51,9 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
   onExternalSearchChange,
   isFullView = false,
   initialWholesaleMode = false,
+  initialCategory = 'all',
 }) => {
-  const [activeCategory, setActiveCategory] = useState<FrameCategory>('all');
+  const [activeCategory, setActiveCategory] = useState<FrameCategory>(initialCategory);
   const [searchQuery, setSearchQuery] = useState(externalSearchQuery || '');
   const [sortOption, setSortOption] = useState<SortOption>('default');
   const [isWholesaleMode, setIsWholesaleMode] = useState<boolean>(initialWholesaleMode);
@@ -63,6 +65,12 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
       setIsWholesaleMode(true);
     }
   }, [initialWholesaleMode]);
+
+  useEffect(() => {
+    if (initialCategory && initialCategory !== activeCategory) {
+      setActiveCategory(initialCategory);
+    }
+  }, [initialCategory]);
 
   useEffect(() => {
     if (!isSampleKitModalOpen) return;

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { getIndianWhatsAppUrl, WHATSAPP_DISPLAY_PHONE } from '../utils/whatsapp';
-import { MessageCircle, ShieldCheck, Truck, Award } from 'lucide-react';
+import { MessageCircle, ShieldCheck, Truck, Award, Lock, X } from 'lucide-react';
 
 export interface FooterProps {
   onNavigateHome?: () => void;
@@ -12,6 +12,80 @@ export interface FooterProps {
   className?: string;
 }
 
+const PrivacyModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Data & Privacy Notice"
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      {/* Panel */}
+      <div className="relative z-10 bg-cream-linen border border-accent/40 rounded-sm shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-accent/20">
+          <div className="flex items-center gap-2">
+            <Lock className="w-4 h-4 text-bronze-bright shrink-0" />
+            <span className="font-headline text-headline-sm text-light-on-primary">Data &amp; Privacy Notice</span>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-light-on-primary-container hover:text-light-on-primary transition-colors p-1 rounded"
+            aria-label="Close privacy notice"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="px-6 py-5 flex flex-col gap-4 font-body text-body-md text-light-on-primary-container leading-relaxed">
+          <p className="text-xs font-mono text-bronze-bright uppercase tracking-widest">
+            This app stores data only on your device — there is no server, cloud backup, or CRM.
+          </p>
+          <ul className="flex flex-col gap-3 list-none">
+            {[
+              { icon: '📋', text: 'Quotations are saved in your browser\'s localStorage on this device only.' },
+              { icon: '🖼️', text: 'Artwork you upload is stored in your browser\'s IndexedDB on this device only.' },
+              { icon: '📬', text: 'Enquiry and lead records are stored in browser localStorage under the key sanskruti_leads_v1.' },
+              { icon: '🗑️', text: 'Clearing browser data or site storage permanently removes all locally stored records with no recovery.' },
+              { icon: '📤', text: 'Export CSV from Saved Quotations before clearing browser data if you need to retain enquiry records.' },
+              { icon: '💬', text: 'WhatsApp opens only when you click "Continue to WhatsApp Enquiry" — it is never triggered automatically.' },
+              { icon: '🔒', text: 'No data is transmitted to any server. There is no centralised CRM, analytics, or cloud backup.' },
+            ].map(({ icon, text }, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <span className="text-base shrink-0 mt-0.5">{icon}</span>
+                <span>{text}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs font-mono text-light-on-primary-container/70 border-t border-accent/20 pt-3 mt-1">
+            Sanskruti Arts Atelier — Mumbai &amp; Gujarat, India. This notice describes how the app stores data on your own device.
+          </p>
+        </div>
+        <div className="px-6 py-4 border-t border-accent/20 flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="bg-bronze-bright text-light-primary px-6 py-2.5 rounded-sm font-label text-label-md uppercase tracking-widest hover:bg-cream-linen transition-colors font-semibold"
+          >
+            Understood
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const Footer: React.FC<FooterProps> = ({
   onNavigateHome,
   onNavigateCatalog,
@@ -21,6 +95,8 @@ export const Footer: React.FC<FooterProps> = ({
   onNavigateQuotations,
   className = '',
 }) => {
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+
   return (
     <footer id="contact" className={`bg-light-primary text-light-on-primary border-t border-accent/30 ${className}`}>
       <div className="max-w-[1360px] mx-auto px-gutter-lg md:px-page-margin py-gutter-xl lg:py-16">
@@ -184,11 +260,23 @@ export const Footer: React.FC<FooterProps> = ({
           <span className="font-label text-label-sm uppercase tracking-widest text-light-on-primary-container">
             © {new Date().getFullYear()} Sanskruti Arts. All rights reserved.
           </span>
-          <span className="font-mono text-mono-sm text-bronze-bright">
-            Decorative Picture Frame Mouldings • Mumbai / Gujarat, India
-          </span>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setPrivacyOpen(true)}
+              className="inline-flex items-center gap-1.5 font-mono text-mono-sm text-light-on-primary-container/70 hover:text-bronze-bright transition-colors underline underline-offset-2"
+              aria-label="Open Data & Privacy Notice"
+            >
+              <Lock className="w-3 h-3" />
+              Data &amp; Privacy
+            </button>
+            <span className="font-mono text-mono-sm text-bronze-bright">
+              Decorative Picture Frame Mouldings • Mumbai / Gujarat, India
+            </span>
+          </div>
         </div>
       </div>
+      {privacyOpen && <PrivacyModal onClose={() => setPrivacyOpen(false)} />}
     </footer>
   );
 };

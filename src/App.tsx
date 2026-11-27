@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { FrameSample, DimensionUnit, MatOption, ArtworkOption, ViewMode, GeneratedMockup } from './types';
+import { FrameCategory, FrameSample, DimensionUnit, MatOption, ArtworkOption, ViewMode, GeneratedMockup } from './types';
 import { FRAME_SAMPLES, MAT_OPTIONS, ARTWORK_OPTIONS } from './data/frames';
 import { getInitialMouldings, resetMouldingsStorage, saveMouldingsToStorage } from './utils/mouldingStorage';
 import { parseRoute } from './utils/routes';
@@ -615,7 +615,8 @@ export function App() {
   // Navigation from Landing Page to Specific App Pages
   const handleLandingNavigate = (
     initialFrameId?: string,
-    initialTab?: 'home' | 'catalog' | 'configure' | 'studio3d' | 'review' | 'quotations' | 'product'
+    initialTab?: 'home' | 'catalog' | 'configure' | 'studio3d' | 'review' | 'quotations' | 'product' | 'wholesale',
+    initialCategory?: 'all' | 'workshop' | 'ornate-gold' | 'classic-wood' | 'antique-gilt' | 'modern-gallery'
   ) => {
     if (initialTab === 'home') {
       navigateTo('/');
@@ -623,6 +624,10 @@ export function App() {
     }
     if (initialTab === 'quotations') {
       navigateTo('/quotations');
+      return;
+    }
+    if (initialTab === 'wholesale') {
+      navigateTo('/wholesale-mouldings');
       return;
     }
     if (initialFrameId) {
@@ -635,7 +640,8 @@ export function App() {
     if (initialTab === 'product' && initialFrameId) {
       navigateTo(`/product/${initialFrameId}`);
     } else if (initialTab === 'catalog') {
-      navigateTo('/catalog');
+      const catQuery = initialCategory && initialCategory !== 'all' ? `?cat=${encodeURIComponent(initialCategory)}` : '';
+      navigateTo(`/catalog${catQuery}`);
     } else if (initialTab === 'studio3d') {
       navigateTo(initialFrameId ? `/studio/${initialFrameId}` : '/studio');
     } else if (initialTab === 'review') {
@@ -906,6 +912,7 @@ export function App() {
                 }}
                 isFullView={true}
                 initialWholesaleMode={routeInfo.presetIntent === 'wholesale-mouldings'}
+                initialCategory={(routeInfo.queryParams?.cat as FrameCategory | undefined) || 'all'}
               />
             </div>
             <Footer

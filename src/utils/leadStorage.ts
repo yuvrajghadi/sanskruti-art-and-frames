@@ -139,12 +139,27 @@ export function getLeadTypeLabel(leadType: LeadType): string {
   }
 }
 
-function escapeCsvCell(value: string | number | null | undefined): string {
+const FORMULA_INJECTION_PREFIX_RE = /^[=+\-@\t\r]/;
+
+/**
+ * Neutralizes spreadsheet formula triggers (`=`, `+`, `-`, `@`, leading tab/CR or space-prefixed operators)
+ * exclusively in exported CSV cells without altering stored LocalStorage records.
+ */
+export function sanitizeCsvCell(value: string | number | null | undefined): string {
   const str = value === null || value === undefined ? '' : String(value);
-  if (/[",\n\r]/.test(str)) {
-    return `"${str.replace(/"/g, '""')}"`;
+  if (!str) return str;
+  if (FORMULA_INJECTION_PREFIX_RE.test(str) || /^[ ]+[=+\-@]/.test(str)) {
+    return `'${str}`;
   }
   return str;
+}
+
+function escapeCsvCell(value: string | number | null | undefined): string {
+  const safe = sanitizeCsvCell(value);
+  if (/[",\n\r]/.test(safe)) {
+    return `"${safe.replace(/"/g, '""')}"`;
+  }
+  return safe;
 }
 
 export function exportLeadsToCsv(leads: SavedLeadEntry[]): string {
