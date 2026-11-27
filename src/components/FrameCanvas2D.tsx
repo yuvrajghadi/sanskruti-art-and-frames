@@ -1,7 +1,11 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { FrameSample, MatOption, ArtworkOption, DimensionUnit } from '../types';
 import { getFrameMaterialProfile } from '../utils/frameRendering';
-import { reconstructMouldingTextures, getCachedMouldingDataUrl } from '../utils/mouldingReconstruction';
+import {
+  reconstructMouldingTextures,
+  getCachedMouldingDataUrl,
+  getProceduralFallbackTextureSet,
+} from '../utils/mouldingReconstruction';
 import { computeSvgGeometry, FrameSide } from '../utils/frameGeometry';
 import { Layers, ShieldCheck, Ruler } from 'lucide-react';
 
@@ -66,26 +70,59 @@ export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
     };
   }, [compactStage]);
 
-  // Photometric Reconstructed Molding Texture with Instant Cache
-  const [rectifiedTextureUrl, setRectifiedTextureUrl] = useState<string | null>(
-    () => getCachedMouldingDataUrl(frame.id)
+  const sourceUrl = frame.cornerDetailUrl || frame.thumbnailUrl || '';
+
+  // Deterministic procedural material fallback shared with ThreeFrameViewer
+  const proceduralFallbackUrl = useMemo(() => {
+    if (typeof document === 'undefined') return '';
+    try {
+      return getProceduralFallbackTextureSet(frame, { highDpi: true }).diffuseCanvas.toDataURL();
+    } catch {
+      return '';
+    }
+  }, [
+    frame.id,
+    frame.colorHex,
+    frame.innerBevelHex,
+    frame.outerBevelHex,
+    frame.woodGrain,
+    frame.goldTone,
+    frame.category,
+    frame.finish,
+  ]);
+
+  // Photometric Reconstructed Molding Texture with Instant Cache + Procedural Fallback
+  const [textureState, setTextureState] = useState<'loading' | 'reconstructed' | 'fallback'>(() =>
+    getCachedMouldingDataUrl(frame.id, sourceUrl) ? 'reconstructed' : 'loading'
+  );
+  const [rectifiedTextureUrl, setRectifiedTextureUrl] = useState<string>(
+    () => getCachedMouldingDataUrl(frame.id, sourceUrl) || proceduralFallbackUrl
   );
 
   useEffect(() => {
     let active = true;
-    const cached = getCachedMouldingDataUrl(frame.id);
+    const cached = getCachedMouldingDataUrl(frame.id, sourceUrl);
     if (cached) {
       setRectifiedTextureUrl(cached);
+      setTextureState('reconstructed');
+    } else {
+      setRectifiedTextureUrl(proceduralFallbackUrl);
+      setTextureState('loading');
     }
-    reconstructMouldingTextures(frame, { highDpi: true }).then(({ diffuseCanvas }) => {
+
+    reconstructMouldingTextures(frame, { highDpi: true }).then(({ diffuseCanvas, isProceduralFallback }) => {
       if (active) {
         setRectifiedTextureUrl(diffuseCanvas.toDataURL());
+        setTextureState(isProceduralFallback ? 'fallback' : 'reconstructed');
       }
     }).catch(() => {
-      if (active && !cached) setRectifiedTextureUrl(null);
+      if (active) {
+        setRectifiedTextureUrl(proceduralFallbackUrl);
+        setTextureState('fallback');
+      }
     });
     return () => { active = false; };
-  }, [frame.id, frame.cornerDetailUrl]);
+  }, [frame, sourceUrl, proceduralFallbackUrl]);
 
   // Material and physical profile telemetry
   const profile = getFrameMaterialProfile(frame);
@@ -133,7 +170,7 @@ export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
         };
 
   const activeArtUrl = customArtUrl || artwork.imageUrl;
-  const activeTextureUrl = rectifiedTextureUrl || frame.cornerDetailUrl || frame.thumbnailUrl || '/mouldings/ornate-golden-baroque-picture-frame.png';
+  const activeTextureUrl = rectifiedTextureUrl || proceduralFallbackUrl;
 
   // Unique SVG element IDs namespaced by frame ID
   const cleanId = frame.id.replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -261,6 +298,7 @@ export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
           <svg
             viewBox={`${-vbPad} ${-vbPad} ${effectiveVbW} ${effectiveVbH}`}
             preserveAspectRatio="xMidYMid meet"
+            data-texture-state={textureState}
             className="w-full h-full block"
             xmlns="http://www.w3.org/2000/svg"
           >

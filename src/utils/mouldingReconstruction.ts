@@ -1,4 +1,5 @@
 import { FrameSample } from '../types';
+import { generateProceduralFrameCanvas } from './frameRendering';
 
 export interface ReconstructedMouldingAsset {
   frameId: string;
@@ -325,7 +326,7 @@ export const RECONSTRUCTED_MOULDING_REGISTRY: Record<string, ReconstructedMouldi
     rabbetDepth: 1.05,
     rabbetWidth: 0.35,
     isRectangularFrame: true,
-    rectCrop: [0.18, 0.035, 0.82, 0.202],
+    rectCrop: [0.18, 0.038, 0.82, 0.200],
     profileCurve: [
       [0.00, 0.88],
       [0.15, 0.95],
@@ -358,7 +359,7 @@ export const RECONSTRUCTED_MOULDING_REGISTRY: Record<string, ReconstructedMouldi
     rabbetDepth: 0.75,
     rabbetWidth: 0.30,
     isRectangularFrame: true,
-    rectCrop: [0.20, 0.040, 0.80, 0.171],
+    rectCrop: [0.20, 0.042, 0.80, 0.169],
     profileCurve: [
       [0.00, 0.92],
       [0.10, 0.96],
@@ -389,7 +390,7 @@ export const RECONSTRUCTED_MOULDING_REGISTRY: Record<string, ReconstructedMouldi
     rabbetDepth: 0.95,
     rabbetWidth: 0.35,
     isRectangularFrame: true,
-    rectCrop: [0.20, 0.035, 0.80, 0.128],
+    rectCrop: [0.20, 0.037, 0.80, 0.126],
     profileCurve: [
       [0.00, 0.90],
       [0.25, 0.94],
@@ -453,7 +454,7 @@ export const RECONSTRUCTED_MOULDING_REGISTRY: Record<string, ReconstructedMouldi
     rabbetDepth: 1.15,
     rabbetWidth: 0.375,
     isRectangularFrame: true,
-    rectCrop: [0.18, 0.026, 0.82, 0.209],
+    rectCrop: [0.18, 0.028, 0.82, 0.207],
     profileCurve: [
       [0.00, 0.92],
       [0.15, 0.98],
@@ -519,7 +520,7 @@ export const RECONSTRUCTED_MOULDING_REGISTRY: Record<string, ReconstructedMouldi
     rabbetDepth: 0.80,
     rabbetWidth: 0.35,
     isRectangularFrame: true,
-    rectCrop: [0.20, 0.038, 0.80, 0.165],
+    rectCrop: [0.20, 0.0445, 0.80, 0.163],
     profileCurve: [
       [0.00, 0.90],
       [0.15, 0.94],
@@ -556,13 +557,150 @@ const IN_FLIGHT_PROMISES = new Map<string, Promise<{
   diffuseCanvas: HTMLCanvasElement;
   normalCanvas: HTMLCanvasElement;
   roughnessCanvas: HTMLCanvasElement;
+  isProceduralFallback?: boolean;
 }>>();
 
 /**
- * Returns immediate synchronous cached data URL for a frame if already generated.
+ * Resolves cached diffuse data URL for a frame, optionally disambiguated by current photo URL.
  */
-export function getCachedMouldingDataUrl(frameId: string): string | null {
+export function getCachedMouldingDataUrl(frameId: string, sourceUrl?: string): string | null {
+  if (sourceUrl) {
+    return DATA_URL_CACHE.get(`${frameId}::${sourceUrl}`) || null;
+  }
   return DATA_URL_CACHE.get(frameId) || null;
+}
+
+/**
+ * Generates an aligned Sobel normal canvas from an RGBA pixel buffer (periodic in X, clamped in Y).
+ */
+function buildSobelNormalCanvasFromRgba(
+  rgba: Uint8ClampedArray,
+  stripW: number,
+  stripH: number,
+  strength: number
+): { normalCanvas: HTMLCanvasElement; gray: Float32Array } {
+  const normalCanvas = document.createElement('canvas');
+  normalCanvas.width = stripW;
+  normalCanvas.height = stripH;
+  const normCtx = normalCanvas.getContext('2d')!;
+  const normImgData = normCtx.createImageData(stripW, stripH);
+  const normData = normImgData.data;
+
+  const gray = new Float32Array(stripW * stripH);
+  for (let i = 0; i < stripW * stripH; i++) {
+    const idx = i * 4;
+    gray[i] = (rgba[idx] * 0.299 + rgba[idx + 1] * 0.587 + rgba[idx + 2] * 0.114) / 255.0;
+  }
+
+  for (let y = 0; y < stripH; y++) {
+    const ym1 = Math.max(0, y - 1);
+    const yp1 = Math.min(stripH - 1, y + 1);
+    for (let x = 0; x < stripW; x++) {
+      const xm1 = (x - 1 + stripW) % stripW;
+      const xp1 = (x + 1) % stripW;
+      const tl = gray[ym1 * stripW + xm1];
+      const tc = gray[ym1 * stripW + x];
+      const tr = gray[ym1 * stripW + xp1];
+      const ml = gray[y * stripW + xm1];
+      const mr = gray[y * stripW + xp1];
+      const bl = gray[yp1 * stripW + xm1];
+      const bc = gray[yp1 * stripW + x];
+      const br = gray[yp1 * stripW + xp1];
+
+      const dx = (tr + 2 * mr + br) - (tl + 2 * ml + bl);
+      const dy = (bl + 2 * bc + br) - (tl + 2 * tc + tr);
+
+      let nx = -dx * strength;
+      let ny = -dy * strength;
+      let nz = 1.0;
+      const len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1.0;
+      nx /= len;
+      ny /= len;
+      nz /= len;
+
+      const idx = (y * stripW + x) * 4;
+      normData[idx] = Math.round((nx * 0.5 + 0.5) * 255);
+      normData[idx + 1] = Math.round((ny * 0.5 + 0.5) * 255);
+      normData[idx + 2] = Math.round((nz * 0.5 + 0.5) * 255);
+      normData[idx + 3] = 255;
+    }
+  }
+  normCtx.putImageData(normImgData, 0, 0);
+  return { normalCanvas, gray };
+}
+
+/**
+ * Applies a C1/C2-continuous periodic boundary bridge across the x = stripW - 1 | x = 0 wrap seam
+ * without reversing edge column indices (preserving slope sign so Sobel normals stay continuous).
+ */
+function applyPeriodicSeamBridge(
+  outData: Uint8ClampedArray,
+  stripW: number,
+  stripH: number,
+  halfWidth: number
+): void {
+  const wing = Math.min(halfWidth, Math.floor(stripW / 4));
+  if (wing < 2) return;
+  const preSeam = new Uint8ClampedArray(outData);
+
+  for (let y = 0; y < stripH; y++) {
+    const leftEdgeIdx = y * stripW * 4;
+    const rightEdgeIdx = (y * stripW + stripW - 1) * 4;
+    for (let c = 0; c < 3; c++) {
+      const mid = 0.5 * (preSeam[leftEdgeIdx + c] + preSeam[rightEdgeIdx + c]);
+      for (let d = 0; d < wing; d++) {
+        const t = (d + 0.5) / wing;
+        const s = 0.5 * (1 - Math.cos(Math.PI * t));
+        // Fourth-order smooth decay guarantees both value (C0) and horizontal gradient (C1)
+        // vanish at the wrap boundary without disturbing interior relief detail.
+        const w = 1 - s * s;
+        const lIdx = (y * stripW + d) * 4;
+        const rIdx = (y * stripW + (stripW - 1 - d)) * 4;
+        outData[lIdx + c] = Math.round(preSeam[lIdx + c] * (1 - w) + mid * w);
+        outData[rIdx + c] = Math.round(preSeam[rIdx + c] * (1 - w) + mid * w);
+      }
+    }
+  }
+}
+
+/**
+ * Deterministic procedural PBR fallback shared identically by 2D and 3D viewers
+ * when no verified physical moulding photograph exists or remote loading fails.
+ */
+export function getProceduralFallbackTextureSet(
+  frame: FrameSample,
+  options?: { highDpi?: boolean }
+): {
+  diffuseCanvas: HTMLCanvasElement;
+  normalCanvas: HTMLCanvasElement;
+  roughnessCanvas: HTMLCanvasElement;
+  isProceduralFallback: boolean;
+} {
+  const useHiDpi = options?.highDpi ?? (typeof window !== 'undefined' && (window.devicePixelRatio || 1) >= 1.5);
+  const stripW = useHiDpi ? 1024 : 512;
+  const stripH = useHiDpi ? 256 : 128;
+
+  const diffuseCanvas = generateProceduralFrameCanvas(frame, 'diffuse', stripW, stripH, 'horizontal');
+  const diffCtx = diffuseCanvas.getContext('2d')!;
+  const diffRgba = diffCtx.getImageData(0, 0, stripW, stripH).data;
+  const bumpCanvas = generateProceduralFrameCanvas(frame, 'bump', stripW, stripH, 'horizontal');
+  const bumpCtx = bumpCanvas.getContext('2d')!;
+  const bumpRgba = bumpCtx.getImageData(0, 0, stripW, stripH).data;
+
+  // Combine diffuse tonal detail + documented height bump so normals reflect real procedural profile depth
+  const combined = new Uint8ClampedArray(stripW * stripH * 4);
+  for (let i = 0; i < stripW * stripH * 4; i += 4) {
+    combined[i] = Math.round(diffRgba[i] * 0.45 + bumpRgba[i] * 0.55);
+    combined[i + 1] = Math.round(diffRgba[i + 1] * 0.45 + bumpRgba[i + 1] * 0.55);
+    combined[i + 2] = Math.round(diffRgba[i + 2] * 0.45 + bumpRgba[i + 2] * 0.55);
+    combined[i + 3] = 255;
+  }
+
+  const strength = Math.max(0.8, Math.min(1.6, 0.7 + (frame.textureDetails?.reliefHeight || 0.3) * 0.8));
+  const { normalCanvas } = buildSobelNormalCanvasFromRgba(combined, stripW, stripH, strength);
+  const roughnessCanvas = generateProceduralFrameCanvas(frame, 'roughness', stripW, stripH, 'horizontal');
+
+  return { diffuseCanvas, normalCanvas, roughnessCanvas, isProceduralFallback: true };
 }
 
 /**
@@ -592,7 +730,7 @@ export function prewarmMouldingTextures(frames: FrameSample[]): void {
  * Master Homography & Photometric Texture Rectification Engine.
  * Extracts a rectilinear strip [length x profileWidth] from the original sample photograph.
  * For studio rectangular frames: samples the continuous horizontal top bar with zero perspective distortion.
- * For workshop corner chevrons: applies bilinear homography to unwarp the 45-degree hand-held arm.
+ * For non-photographic/procedural swatches: synthesizes deterministic procedural PBR textures.
  */
 export async function reconstructMouldingTextures(
   frame: FrameSample,
@@ -601,8 +739,13 @@ export async function reconstructMouldingTextures(
   diffuseCanvas: HTMLCanvasElement;
   normalCanvas: HTMLCanvasElement;
   roughnessCanvas: HTMLCanvasElement;
+  isProceduralFallback?: boolean;
 }> {
-  const cacheKey = frame.id;
+  const asset = RECONSTRUCTED_MOULDING_REGISTRY[frame.id];
+  const photoUrl = frame.cornerDetailUrl || frame.thumbnailUrl || asset?.sourcePhotoUrl || '';
+  const useHiDpi = options?.highDpi ?? (typeof window !== 'undefined' && (window.devicePixelRatio || 1) >= 1.5);
+  const cacheKey = `${frame.id}::${useHiDpi ? 'hi' : 'lo'}::${photoUrl}`;
+
   if (TEXTURE_CACHE.has(cacheKey)) {
     return TEXTURE_CACHE.get(cacheKey)!;
   }
@@ -612,11 +755,26 @@ export async function reconstructMouldingTextures(
   }
 
   const executionPromise = (async () => {
-    const asset = RECONSTRUCTED_MOULDING_REGISTRY[frame.id];
-    const photoUrl = frame.cornerDetailUrl || frame.thumbnailUrl || asset?.sourcePhotoUrl || '/mouldings/ornate-mahogany-and-gold-frame.png';
+    // Non-photographic SVG architectural swatches route directly to deterministic procedural PBR maps
+    const isNonPhotoSource =
+      !photoUrl ||
+      photoUrl.startsWith('data:image/svg+xml') ||
+      photoUrl.startsWith('procedural://');
+
+    if (isNonPhotoSource) {
+      const proceduralResult = getProceduralFallbackTextureSet(frame, options);
+      TEXTURE_CACHE.set(cacheKey, proceduralResult);
+      try {
+        const dataUrl = proceduralResult.diffuseCanvas.toDataURL();
+        DATA_URL_CACHE.set(frame.id, dataUrl);
+        DATA_URL_CACHE.set(`${frame.id}::${photoUrl}`, dataUrl);
+      } catch {
+        // Ignore toDataURL errors
+      }
+      return proceduralResult;
+    }
 
     // Support crisp High-DPI texture resolution (1024x256) on retina displays while preserving aspect ratio
-    const useHiDpi = options?.highDpi ?? (typeof window !== 'undefined' && (window.devicePixelRatio || 1) >= 1.5);
     const stripW = useHiDpi ? 1024 : 512;
     const stripH = useHiDpi ? 256 : 128;
 
@@ -625,7 +783,7 @@ export async function reconstructMouldingTextures(
     diffuseCanvas.height = stripH;
     const diffCtx = diffuseCanvas.getContext('2d')!;
 
-  // Load source photo
+  // Load source photo (rejects cleanly on 404/network/CORS failure so viewers invoke deterministic fallback)
   const img = await loadImage(photoUrl);
   const srcW = img.naturalWidth || img.width || 1024;
   const srcH = img.naturalHeight || img.height || 1024;
@@ -719,22 +877,26 @@ export async function reconstructMouldingTextures(
 
     const cropX = Math.max(0, Math.floor(cropMinX * srcW));
     const cropY = Math.max(0, Math.floor(cropMinY * srcH));
-    let cropW = Math.min(srcW - cropX, Math.floor((cropMaxX - cropMinX) * srcW));
+    const rawCropW = Math.min(srcW - cropX, Math.floor((cropMaxX - cropMinX) * srcW));
     const cropH = Math.max(16, Math.min(srcH - cropY, Math.floor((cropMaxY - cropMinY) * srcH)));
 
-    // Find best autocorrelation periodic crop length so carved/grain motifs meet cleanly at seam
+    const blendWidth = Math.min(64, Math.floor(stripW * 0.08));
+    let cropW = rawCropW;
+
+    // Find best autocorrelation periodic crop length inside [0.56..0.86] of rawCropW,
+    // leaving genuine continuation tail pixels immediately after bestLen for seamless overlap cross-fade.
     try {
       const sampleCanvas = document.createElement('canvas');
-      sampleCanvas.width = cropW;
+      sampleCanvas.width = rawCropW;
       sampleCanvas.height = cropH;
       const sCtx = sampleCanvas.getContext('2d');
-      if (sCtx && cropW > 128) {
-        sCtx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-        const rawPx = sCtx.getImageData(0, 0, cropW, cropH).data;
+      if (sCtx && rawCropW > 128) {
+        sCtx.drawImage(img, cropX, cropY, rawCropW, cropH, 0, 0, rawCropW, cropH);
+        const rawPx = sCtx.getImageData(0, 0, rawCropW, cropH).data;
         const win = 20;
-        const minLen = Math.max(win * 3, Math.floor(cropW * 0.62));
-        const maxLen = cropW - win;
-        let bestLen = cropW;
+        const minLen = Math.max(win * 3, Math.floor(rawCropW * 0.56));
+        const maxLen = Math.min(rawCropW - win, Math.floor(rawCropW * 0.86));
+        let bestLen = maxLen;
         let bestErr = Number.POSITIVE_INFINITY;
         const stepY = Math.max(1, Math.floor(cropH / 24));
         for (let cand = minLen; cand <= maxLen; cand += 2) {
@@ -742,8 +904,8 @@ export async function reconstructMouldingTextures(
           let count = 0;
           for (let y = 2; y < cropH - 2; y += stepY) {
             for (let dx = 0; dx < win; dx += 2) {
-              const i0 = (y * cropW + dx) * 4;
-              const i1 = (y * cropW + (cand - win + dx)) * 4;
+              const i0 = (y * rawCropW + dx) * 4;
+              const i1 = (y * rawCropW + (cand - win + dx)) * 4;
               const dr = rawPx[i0] - rawPx[i1];
               const dg = rawPx[i0 + 1] - rawPx[i1 + 1];
               const db = rawPx[i0 + 2] - rawPx[i1 + 2];
@@ -762,23 +924,35 @@ export async function reconstructMouldingTextures(
         }
       }
     } catch {
-      // Non-fatal: proceed with nominal cropW
+      // Non-fatal: keep rawCropW
     }
 
-    diffCtx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, stripW, stripH);
-    const imgData = diffCtx.getImageData(0, 0, stripW, stripH);
-    outData = imgData.data;
+    // Reserve genuine continuation tail beyond cropW from the same studio photo when available
+    const maxTailSrc = Math.max(0, srcW - (cropX + cropW));
+    const tailSrcW = Math.min(maxTailSrc, Math.max(8, Math.round((cropW * blendWidth) / stripW)));
+    const extBlendW = tailSrcW >= 8 ? blendWidth : 0;
+    const extW = stripW + extBlendW;
 
-    // Profile-aware gentle longitudinal illumination leveling (removes end-to-end falloff without muting specular relief)
+    const extCanvas = document.createElement('canvas');
+    extCanvas.width = extW;
+    extCanvas.height = stripH;
+    const extCtx = extCanvas.getContext('2d')!;
+    extCtx.drawImage(img, cropX, cropY, cropW + (extBlendW > 0 ? tailSrcW : 0), cropH, 0, 0, extW, stripH);
+
+    const extImgData = extCtx.getImageData(0, 0, extW, stripH);
+    const extData = extImgData.data;
+
+    // Circular longitudinal illumination leveling over stripW (plus wrapped continuation tail)
+    // avoids clamped brightness ledges across x = stripW - 1 | x = 0.
     const hasRelief = Boolean(asset?.metadata?.hasOrnamentalRelief ?? (frame.textureDetails?.reliefHeight && frame.textureDetails.reliefHeight > 0.35));
     const metalness = asset?.pbr?.metalness ?? (frame.goldTone ? 0.85 : 0.08);
     const levelingStrength = hasRelief ? 0.55 : metalness > 0.7 ? 0.45 : 0.72;
-    const colLum = new Float32Array(stripW);
-    for (let x = 0; x < stripW; x++) {
+    const colLum = new Float32Array(extW);
+    for (let x = 0; x < extW; x++) {
       let acc = 0;
       for (let y = 0; y < stripH; y++) {
-        const idx = (y * stripW + x) * 4;
-        acc += outData[idx] * 0.299 + outData[idx + 1] * 0.587 + outData[idx + 2] * 0.114;
+        const idx = (y * extW + x) * 4;
+        acc += extData[idx] * 0.299 + extData[idx + 1] * 0.587 + extData[idx + 2] * 0.114;
       }
       colLum[x] = acc / stripH;
     }
@@ -797,32 +971,51 @@ export async function reconstructMouldingTextures(
       globalLumSum += smoothCol[x];
     }
     const targetLum = globalLumSum / stripW;
-    for (let x = 0; x < stripW; x++) {
-      const ratio = targetLum / Math.max(18, smoothCol[x]);
+    for (let x = 0; x < extW; x++) {
+      const refLum = smoothCol[x < stripW ? x : (x - stripW) % stripW];
+      const ratio = targetLum / Math.max(18, refLum);
       const clampedRatio = Math.max(0.86, Math.min(1.16, ratio));
       const gain = 1 + (clampedRatio - 1) * levelingStrength;
       for (let y = 0; y < stripH; y++) {
-        const idx = (y * stripW + x) * 4;
-        outData[idx] = Math.min(255, Math.max(0, Math.round(outData[idx] * gain)));
-        outData[idx + 1] = Math.min(255, Math.max(0, Math.round(outData[idx + 1] * gain)));
-        outData[idx + 2] = Math.min(255, Math.max(0, Math.round(outData[idx + 2] * gain)));
+        const idx = (y * extW + x) * 4;
+        extData[idx] = Math.min(255, Math.max(0, Math.round(extData[idx] * gain)));
+        extData[idx + 1] = Math.min(255, Math.max(0, Math.round(extData[idx + 1] * gain)));
+        extData[idx + 2] = Math.min(255, Math.max(0, Math.round(extData[idx + 2] * gain)));
       }
     }
 
-    // Apply seamless raised-cosine cross-fade across wrap seam for continuous tiling
-    const blendWidth = Math.min(64, Math.floor(stripW * 0.08));
-    for (let y = 0; y < stripH; y++) {
-      for (let x = 0; x < blendWidth; x++) {
-        const t = x / blendWidth;
-        const leftIdx = (y * stripW + x) * 4;
-        const rightIdx = (y * stripW + (stripW - blendWidth + x)) * 4;
-        const factor = 0.5 * (1 - Math.cos(Math.PI * t));
-        for (let c = 0; c < 3; c++) {
-          const blended = Math.round(outData[rightIdx + c] * (1 - factor) + outData[leftIdx + c] * factor);
-          outData[leftIdx + c] = blended;
-          outData[rightIdx + c] = blended;
+    const imgData = diffCtx.createImageData(stripW, stripH);
+    outData = imgData.data;
+
+    if (extBlendW > 0) {
+      // True overlap cross-fade: out[0] starts at continuation pixel ext[stripW] (1px after out[stripW-1])
+      // and transitions smoothly into ext[0..extBlendW-1] without duplicating any slice.
+      for (let y = 0; y < stripH; y++) {
+        for (let x = 0; x < stripW; x++) {
+          const outIdx = (y * stripW + x) * 4;
+          const headIdx = (y * extW + x) * 4;
+          if (x < extBlendW) {
+            const t = (x + 0.5) / extBlendW;
+            const alpha = 0.5 * (1 - Math.cos(Math.PI * t));
+            const tailIdx = (y * extW + (stripW + x)) * 4;
+            for (let c = 0; c < 3; c++) {
+              outData[outIdx + c] = Math.round(extData[tailIdx + c] * (1 - alpha) + extData[headIdx + c] * alpha);
+            }
+          } else {
+            outData[outIdx] = extData[headIdx];
+            outData[outIdx + 1] = extData[headIdx + 1];
+            outData[outIdx + 2] = extData[headIdx + 2];
+          }
+          outData[outIdx + 3] = 255;
         }
       }
+      // C1-continuous seam bridge (10px wing -> 98% of strip untouched) guarantees both diffuse and Sobel normal wrap smoothly.
+      applyPeriodicSeamBridge(outData, stripW, stripH, 10);
+    } else {
+      for (let i = 0; i < stripW * stripH * 4; i++) {
+        outData[i] = extData[i];
+      }
+      applyPeriodicSeamBridge(outData, stripW, stripH, blendWidth);
     }
     diffCtx.putImageData(imgData, 0, 0);
 
@@ -872,77 +1065,16 @@ export async function reconstructMouldingTextures(
       }
     }
 
-    // Seamless tile blending for chevron strip
-    const blendWidth = Math.min(48, Math.floor(stripW * 0.12));
-    for (let y = 0; y < stripH; y++) {
-      for (let x = 0; x < blendWidth; x++) {
-        const t = x / blendWidth;
-        const leftIdx = (y * stripW + x) * 4;
-        const rightIdx = (y * stripW + (stripW - blendWidth + x)) * 4;
-        const factor = 0.5 * (1 - Math.cos(Math.PI * t));
-        for (let c = 0; c < 3; c++) {
-          const blended = Math.round(outData[rightIdx + c] * (1 - factor) + outData[leftIdx + c] * factor);
-          outData[leftIdx + c] = blended;
-          outData[rightIdx + c] = blended;
-        }
-      }
-    }
+    // C1-continuous seam bridge for Path B chevron strips
+    applyPeriodicSeamBridge(outData, stripW, stripH, Math.min(48, Math.floor(stripW * 0.12)));
     diffCtx.putImageData(outImgData, 0, 0);
   }
 
   // -------------------------------------------------------------
   // SURFACE NORMAL MAP GENERATION (Sobel Gradient Filter)
   // -------------------------------------------------------------
-  const normalCanvas = document.createElement('canvas');
-  normalCanvas.width = stripW;
-  normalCanvas.height = stripH;
-  const normCtx = normalCanvas.getContext('2d')!;
-  const normImgData = normCtx.createImageData(stripW, stripH);
-  const normData = normImgData.data;
-
-  // Grayscale buffer
-  const gray = new Float32Array(stripW * stripH);
-  for (let i = 0; i < stripW * stripH; i++) {
-    const idx = i * 4;
-    gray[i] = (outData[idx] * 0.299 + outData[idx + 1] * 0.587 + outData[idx + 2] * 0.114) / 255.0;
-  }
-
   const strength = asset?.pbr?.normalStrength || 1.6;
-
-  for (let y = 0; y < stripH; y++) {
-    const ym1 = Math.max(0, y - 1);
-    const yp1 = Math.min(stripH - 1, y + 1);
-    for (let x = 0; x < stripW; x++) {
-      const xm1 = (x - 1 + stripW) % stripW;
-      const xp1 = (x + 1) % stripW;
-      const tl = gray[ym1 * stripW + xm1];
-      const tc = gray[ym1 * stripW + x];
-      const tr = gray[ym1 * stripW + xp1];
-      const ml = gray[y * stripW + xm1];
-      const mr = gray[y * stripW + xp1];
-      const bl = gray[yp1 * stripW + xm1];
-      const bc = gray[yp1 * stripW + x];
-      const br = gray[yp1 * stripW + xp1];
-
-      const dx = (tr + 2 * mr + br) - (tl + 2 * ml + bl);
-      const dy = (bl + 2 * bc + br) - (tl + 2 * tc + tr);
-
-      let nx = -dx * strength;
-      let ny = -dy * strength;
-      let nz = 1.0;
-      const len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1.0;
-      nx /= len;
-      ny /= len;
-      nz /= len;
-
-      const idx = (y * stripW + x) * 4;
-      normData[idx] = Math.round((nx * 0.5 + 0.5) * 255);
-      normData[idx + 1] = Math.round((ny * 0.5 + 0.5) * 255);
-      normData[idx + 2] = Math.round((nz * 0.5 + 0.5) * 255);
-      normData[idx + 3] = 255;
-    }
-  }
-  normCtx.putImageData(normImgData, 0, 0);
+  const { normalCanvas, gray } = buildSobelNormalCanvasFromRgba(outData, stripW, stripH, strength);
 
   // -------------------------------------------------------------
   // ROUGHNESS MAP GENERATION
@@ -967,10 +1099,12 @@ export async function reconstructMouldingTextures(
   }
   roughCtx.putImageData(roughImgData, 0, 0);
 
-    const result = { diffuseCanvas, normalCanvas, roughnessCanvas };
+    const result = { diffuseCanvas, normalCanvas, roughnessCanvas, isProceduralFallback: false };
     TEXTURE_CACHE.set(cacheKey, result);
     try {
-      DATA_URL_CACHE.set(frame.id, diffuseCanvas.toDataURL());
+      const dataUrl = diffuseCanvas.toDataURL();
+      DATA_URL_CACHE.set(frame.id, dataUrl);
+      DATA_URL_CACHE.set(`${frame.id}::${photoUrl}`, dataUrl);
     } catch {
       // Ignore canvas toDataURL errors if tainted
     }

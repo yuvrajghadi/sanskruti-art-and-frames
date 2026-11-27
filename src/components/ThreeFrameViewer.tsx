@@ -2,8 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { FrameSample, MatOption, ArtworkOption, DimensionUnit, ArtworkFitMode } from '../types';
-import { getFrameMaterialProfile, generateProceduralFrameCanvas } from '../utils/frameRendering';
-import { reconstructMouldingTextures, RECONSTRUCTED_MOULDING_REGISTRY } from '../utils/mouldingReconstruction';
+import { getFrameMaterialProfile } from '../utils/frameRendering';
+import {
+  reconstructMouldingTextures,
+  RECONSTRUCTED_MOULDING_REGISTRY,
+  getProceduralFallbackTextureSet,
+} from '../utils/mouldingReconstruction';
 import { computePhysicalMetrics, buildCrossSectionLoop, buildMiteredRailBuffers, FrameSide } from '../utils/frameGeometry';
 
 export type LightingEnv = '3000k' | '5500k' | '2400k' | 'studio';
@@ -346,27 +350,19 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
         metalness = Math.max(0.02, metalness * 0.7);
       }
 
-      // Generate procedural bump canvas texture for authentic surface tactile depth
-      const bumpCanvas = generateProceduralFrameCanvas(frame, 'bump', 512, 512);
-      const bumpTexture = new THREE.CanvasTexture(bumpCanvas);
-      bumpTexture.wrapS = THREE.RepeatWrapping;
-      bumpTexture.wrapT = THREE.RepeatWrapping;
-      bumpTexture.repeat.set(2, 2);
+      const applyTextureTriple = (
+        material: THREE.MeshStandardMaterial,
+        set: {
+          diffuseCanvas: HTMLCanvasElement;
+          normalCanvas: HTMLCanvasElement;
+          roughnessCanvas: HTMLCanvasElement;
+        }
+      ) => {
+        const oldMap = material.map;
+        const oldNormal = material.normalMap;
+        const oldRough = material.roughnessMap;
 
-      const moldingMaterial = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(profile.baseColor),
-        roughness,
-        metalness,
-        bumpMap: bumpTexture,
-        bumpScale: profile.bumpScale,
-      });
-
-      // Photometric Reconstruction: Extract rectified seamless strips mapped identically via UVs on all 4 rails
-      let isMounted = true;
-
-      reconstructMouldingTextures(frame, { highDpi: true }).then(({ diffuseCanvas, normalCanvas, roughnessCanvas }) => {
-        if (!isMounted) return;
-        const diffTex = new THREE.CanvasTexture(diffuseCanvas);
+        const diffTex = new THREE.CanvasTexture(set.diffuseCanvas);
         diffTex.wrapS = THREE.RepeatWrapping;
         diffTex.wrapT = THREE.ClampToEdgeWrapping;
         diffTex.colorSpace = THREE.SRGBColorSpace;
@@ -374,26 +370,52 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
         // Physical periodicity (3.5 * faceWidth) is baked directly into mesh UVs so all 4 rails share repeat(1, 1)
         diffTex.repeat.set(1, 1);
 
-        const normTex = new THREE.CanvasTexture(normalCanvas);
+        const normTex = new THREE.CanvasTexture(set.normalCanvas);
         normTex.wrapS = THREE.RepeatWrapping;
         normTex.wrapT = THREE.ClampToEdgeWrapping;
         normTex.repeat.set(1, 1);
 
-        const roughTex = new THREE.CanvasTexture(roughnessCanvas);
+        const roughTex = new THREE.CanvasTexture(set.roughnessCanvas);
         roughTex.wrapS = THREE.RepeatWrapping;
         roughTex.wrapT = THREE.ClampToEdgeWrapping;
         roughTex.repeat.set(1, 1);
 
-        moldingMaterial.color.setHex(
+        material.color.setHex(
           patina === 'aged' ? 0xd9cfb8 : patina === 'antiqued' ? 0xebe3d2 : 0xffffff
         );
-        moldingMaterial.map = diffTex;
-        moldingMaterial.normalMap = normTex;
-        moldingMaterial.normalScale.set(1.35, 1.35);
-        moldingMaterial.roughnessMap = roughTex;
-        moldingMaterial.needsUpdate = true;
-      }).catch((err) => {
-        console.warn('Photometric reconstruction fallback:', err);
+        material.map = diffTex;
+        material.normalMap = normTex;
+        material.normalScale.set(1.35, 1.35);
+        material.roughnessMap = roughTex;
+        material.needsUpdate = true;
+
+        oldMap?.dispose();
+        oldNormal?.dispose();
+        oldRough?.dispose();
+      };
+
+      // Synchronous deterministic procedural material matches FrameCanvas2D during loading and fallback
+      const fallbackSet = getProceduralFallbackTextureSet(frame, { highDpi: true });
+      const moldingMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness,
+        metalness,
+      });
+      applyTextureTriple(moldingMaterial, fallbackSet);
+      frameGroup.userData.textureState = 'loading';
+
+      // Photometric Reconstruction: Extract rectified seamless strips mapped identically via UVs on all 4 rails
+      let isMounted = true;
+
+      reconstructMouldingTextures(frame, { highDpi: true }).then((texSet) => {
+        if (!isMounted) return;
+        applyTextureTriple(moldingMaterial, texSet);
+        frameGroup.userData.textureState = texSet.isProceduralFallback ? 'fallback' : 'reconstructed';
+      }).catch(() => {
+        if (!isMounted) return;
+        const recoverySet = getProceduralFallbackTextureSet(frame, { highDpi: true });
+        applyTextureTriple(moldingMaterial, recoverySet);
+        frameGroup.userData.textureState = 'fallback';
       });
 
       // Build 4 symmetrical contoured 45-degree mitered rails from reconstructed cross-section curve
@@ -515,7 +537,15 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
           artTexture.wrapT = THREE.ClampToEdgeWrapping;
 
           const cavityAspect = artW / artH;
-          const artAspect = artwork.aspectRatio || 1.0;
+          const uploadedImg = artTexture.image as
+            | { naturalWidth?: number; naturalHeight?: number; width?: number; height?: number }
+            | undefined;
+          const imgW = uploadedImg?.naturalWidth || uploadedImg?.width || 0;
+          const imgH = uploadedImg?.naturalHeight || uploadedImg?.height || 0;
+          const intrinsicAspect = imgW > 0 && imgH > 0 ? imgW / imgH : 0;
+          const artAspect = customArtUrl
+            ? intrinsicAspect || artwork.aspectRatio || 1.0
+            : artwork.aspectRatio || intrinsicAspect || 1.0;
 
           // Aspect-ratio correction to prevent stretching
           if (artworkFit === 'fit') {

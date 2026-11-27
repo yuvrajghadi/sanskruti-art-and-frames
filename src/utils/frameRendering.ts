@@ -226,7 +226,64 @@ export function getFrameMaterialProfile(frame: FrameSample): FrameMaterialProfil
 }
 
 /**
- * Procedural HTML5 Canvas Texture Generator
+ * Deterministic PRNG (FNV-1a hash + Mulberry32) so procedural textures are reproducible per profile.
+ */
+function createSeededRng(seedKey: string): () => number {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < seedKey.length; i++) {
+    h ^= seedKey.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  let state = h || 0x9e3779b9;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Draws a horizontally/vertically periodic bevel profile shading band derived strictly
+ * from documented outerBevelHex, baseColor, and innerBevelHex attributes.
+ */
+function drawDocumentedBevelBands(
+  ctx: CanvasRenderingContext2D,
+  frame: FrameSample,
+  profile: FrameMaterialProfile,
+  width: number,
+  height: number,
+  isHoriz: boolean
+): void {
+  const outerHex = frame.outerBevelHex || profile.shadowColor;
+  const innerHex = frame.innerBevelHex || profile.highlightColor;
+  const grad = isHoriz
+    ? ctx.createLinearGradient(0, 0, 0, height)
+    : ctx.createLinearGradient(0, 0, width, 0);
+  grad.addColorStop(0.0, outerHex);
+  grad.addColorStop(0.14, profile.baseColor);
+  grad.addColorStop(0.5, profile.baseColor);
+  grad.addColorStop(0.86, profile.baseColor);
+  grad.addColorStop(1.0, innerHex);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, width, height);
+
+  // Subtle architectural ridge separator along outer and inner step bounds
+  ctx.save();
+  ctx.globalAlpha = 0.28;
+  ctx.fillStyle = profile.shadowColor;
+  if (isHoriz) {
+    ctx.fillRect(0, Math.round(height * 0.14), width, Math.max(1, Math.round(height * 0.015)));
+    ctx.fillRect(0, Math.round(height * 0.84), width, Math.max(1, Math.round(height * 0.015)));
+  } else {
+    ctx.fillRect(Math.round(width * 0.14), 0, Math.max(1, Math.round(width * 0.015)), height);
+    ctx.fillRect(Math.round(width * 0.84), 0, Math.max(1, Math.round(width * 0.015)), height);
+  }
+  ctx.restore();
+}
+
+/**
+ * Deterministic, Seamlessly Tileable HTML5 Canvas Texture Generator
  * Creates dedicated texture maps (diffuse, bump, roughness) for Three.js WebGL and SVG patterns.
  */
 export function generateProceduralFrameCanvas(
@@ -243,146 +300,179 @@ export function generateProceduralFrameCanvas(
   if (!ctx) return canvas;
 
   const profile = getFrameMaterialProfile(frame);
+  const rng = createSeededRng(`${frame.id}:${mapType}:${barOrientation}`);
+  const isHoriz = barOrientation === 'horizontal';
+  const spanLen = isHoriz ? width : height;
+
+  const drawWrapped = (fn: (offset: number) => void) => {
+    fn(-spanLen);
+    fn(0);
+    fn(spanLen);
+  };
 
   if (mapType === 'diffuse') {
-    // 1. Base Fill
-    ctx.fillStyle = profile.baseColor;
-    ctx.fillRect(0, 0, width, height);
+    // 1. Documented Bevel Base Fill (outer -> center frieze -> inner sightline)
+    drawDocumentedBevelBands(ctx, frame, profile, width, height, isHoriz);
 
-    if (profile.type === 'natural-wood' || profile.type === 'cerused-ash') {
-      // Draw authentic longitudinal wood grain fibers
-      const isHoriz = barOrientation === 'horizontal';
-      const fiberCount = 180;
-      
+    if (profile.type === 'natural-wood' || profile.type === 'cerused-ash' || profile.type === 'burl-walnut') {
+      const fiberCount = 160;
+      const harmonicCycles = 2; // Integer period guarantees C1 wrap continuity at x=0 and x=width
+
       for (let i = 0; i < fiberCount; i++) {
-        const pos = Math.random() * (isHoriz ? height : width);
-        const thickness = 0.5 + Math.random() * 2.2;
-        const alpha = 0.08 + Math.random() * 0.25;
-        const isHighlight = Math.random() > 0.65;
-        
-        ctx.strokeStyle = isHighlight 
-          ? profile.highlightColor 
-          : profile.shadowColor;
-        ctx.globalAlpha = profile.type === 'cerused-ash' && isHighlight ? alpha * 1.8 : alpha;
+        const pos = rng() * (isHoriz ? height : width);
+        const thickness = 0.5 + rng() * 2.0;
+        const alpha = 0.07 + rng() * 0.22;
+        const isHighlight = rng() > 0.65;
+        const phase = rng() * Math.PI * 2;
+        const amp = 1.2 + rng() * 1.8;
+
+        ctx.strokeStyle = isHighlight ? profile.highlightColor : profile.shadowColor;
+        ctx.globalAlpha = profile.type === 'cerused-ash' && isHighlight ? alpha * 1.7 : alpha;
         ctx.lineWidth = thickness;
-        
+
         ctx.beginPath();
         if (isHoriz) {
-          ctx.moveTo(0, pos);
-          // Add subtle natural growth wave
-          for (let x = 0; x <= width; x += 40) {
-            const wave = Math.sin((x + i * 30) * 0.02) * 2.5;
-            ctx.lineTo(x, pos + wave);
+          for (let x = 0; x <= width; x += 16) {
+            const wave = Math.sin((x / width) * Math.PI * 2 * harmonicCycles + phase) * amp;
+            if (x === 0) ctx.moveTo(x, pos + wave);
+            else ctx.lineTo(x, pos + wave);
           }
         } else {
-          ctx.moveTo(pos, 0);
-          for (let y = 0; y <= height; y += 40) {
-            const wave = Math.sin((y + i * 30) * 0.02) * 2.5;
-            ctx.lineTo(pos + wave, y);
+          for (let y = 0; y <= height; y += 16) {
+            const wave = Math.sin((y / height) * Math.PI * 2 * harmonicCycles + phase) * amp;
+            if (y === 0) ctx.moveTo(pos + wave, y);
+            else ctx.lineTo(pos + wave, y);
           }
         }
         ctx.stroke();
       }
 
-      // Add natural timber medullary rays & pores
+      // Periodically wrapped timber pores
       ctx.globalAlpha = 0.07;
       ctx.fillStyle = profile.shadowColor;
-      for (let j = 0; j < 600; j++) {
-        const rx = Math.random() * width;
-        const ry = Math.random() * height;
-        const rw = isHoriz ? 8 + Math.random() * 16 : 1.5;
-        const rh = isHoriz ? 1.5 : 8 + Math.random() * 16;
-        ctx.fillRect(rx, ry, rw, rh);
+      for (let j = 0; j < 420; j++) {
+        const rx = rng() * width;
+        const ry = rng() * height;
+        const rw = isHoriz ? 8 + rng() * 14 : 1.5;
+        const rh = isHoriz ? 1.5 : 8 + rng() * 14;
+        drawWrapped((off) => {
+          if (isHoriz) ctx.fillRect(rx + off, ry, rw, rh);
+          else ctx.fillRect(rx, ry + off, rw, rh);
+        });
       }
     } else if (profile.type === 'carved-gold') {
-      // Draw ornate baroque acanthus leaf scrolls & crosshatching
-      // Crosshatching background
-      ctx.globalAlpha = 0.22;
-      ctx.strokeStyle = profile.shadowColor;
-      ctx.lineWidth = 1;
-      const step = 8;
-      for (let x = -height; x < width + height; x += step) {
+      // Soft periodic woven stipple waves (integer period = C1 continuous wrap, zero 1px diagonal seam aliasing)
+      ctx.globalAlpha = 0.14;
+      for (let i = 0; i < 42; i++) {
+        const y0 = height * (0.14 + (i / 42) * 0.72);
+        const phase = rng() * Math.PI * 2;
+        const cycles = 4 + (i % 4) * 2;
+        ctx.strokeStyle = i % 2 === 0 ? profile.shadowColor : profile.highlightColor;
+        ctx.lineWidth = 1.6;
         ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x + height, height);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x + height, 0);
-        ctx.lineTo(x, height);
+        for (let x = 0; x <= width; x += 8) {
+          const wy = y0 + Math.sin((x / width) * Math.PI * 2 * cycles + phase) * 3.0;
+          if (x === 0) ctx.moveTo(x, wy);
+          else ctx.lineTo(x, wy);
+        }
         ctx.stroke();
       }
 
-      // Acanthus relief leaf scrolls
-      ctx.globalAlpha = 0.45;
+      // Organic seeded relief motifs placed cleanly across periodic span with varied radius/phase
+      ctx.globalAlpha = 0.36;
       const scrollStep = 64;
-      for (let x = 0; x < width + scrollStep; x += scrollStep) {
-        // Shadow leaf curve
-        ctx.strokeStyle = profile.shadowColor;
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(x + 20, height * 0.45 + 2, 22, 0.2 * Math.PI, 1.2 * Math.PI);
-        ctx.stroke();
+      const count = Math.max(1, Math.round(spanLen / scrollStep));
+      const exactStep = spanLen / count;
+      for (let i = 0; i < count; i++) {
+        const cx = (i + 0.32 + rng() * 0.36) * exactStep;
+        const rad = Math.min(20, height * (0.13 + rng() * 0.05));
+        drawWrapped((off) => {
+          const px = cx + off;
+          ctx.strokeStyle = profile.shadowColor;
+          ctx.lineWidth = 3.2;
+          ctx.beginPath();
+          ctx.arc(px, height * 0.48 + 2, rad, 0.2 * Math.PI, 1.2 * Math.PI);
+          ctx.stroke();
 
-        // Highlight leaf crest
-        ctx.strokeStyle = profile.highlightColor;
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.arc(x + 20, height * 0.45, 22, 0.2 * Math.PI, 1.2 * Math.PI);
-        ctx.stroke();
+          ctx.strokeStyle = profile.highlightColor;
+          ctx.lineWidth = 2.0;
+          ctx.beginPath();
+          ctx.arc(px, height * 0.48, rad, 0.2 * Math.PI, 1.2 * Math.PI);
+          ctx.stroke();
 
-        // Florets & rosettes
-        ctx.fillStyle = profile.highlightColor;
-        ctx.beginPath();
-        ctx.arc(x + 20, height * 0.45, 5, 0, 2 * Math.PI);
-        ctx.fill();
+          ctx.fillStyle = profile.highlightColor;
+          ctx.beginPath();
+          ctx.arc(px, height * 0.48, Math.min(4.5, height * 0.038), 0, 2 * Math.PI);
+          ctx.fill();
+        });
       }
     } else if (profile.type === 'distressed-gilt') {
-      // Mottled gold foil with Venetian red bole peek-through
-      // Bole undertone spots
-      ctx.globalAlpha = 0.35;
+      ctx.globalAlpha = 0.22;
       ctx.fillStyle = profile.boleColor;
-      for (let b = 0; b < 120; b++) {
-        const bx = Math.random() * width;
-        const by = Math.random() * height;
-        const br = 2 + Math.random() * 12;
-        ctx.beginPath();
-        ctx.arc(bx, by, br, 0, 2 * Math.PI);
-        ctx.fill();
+      for (let b = 0; b < 90; b++) {
+        const bx = rng() * width;
+        const by = rng() * height;
+        const br = 2 + rng() * 8;
+        drawWrapped((off) => {
+          ctx.beginPath();
+          ctx.arc(isHoriz ? bx + off : bx, isHoriz ? by : by + off, br, 0, 2 * Math.PI);
+          ctx.fill();
+        });
       }
 
-      // Irregular gold foil leaf cracks & burnish
-      ctx.globalAlpha = 0.25;
+      ctx.globalAlpha = 0.14;
       ctx.fillStyle = profile.highlightColor;
-      for (let g = 0; g < 400; g++) {
-        const gx = Math.random() * width;
-        const gy = Math.random() * height;
-        const gw = 1 + Math.random() * 8;
-        const gh = 1 + Math.random() * 8;
-        ctx.fillRect(gx, gy, gw, gh);
+      for (let g = 0; g < 260; g++) {
+        const gx = rng() * width;
+        const gy = rng() * height;
+        const gr = 1.5 + rng() * 3.5;
+        drawWrapped((off) => {
+          ctx.beginPath();
+          ctx.arc(isHoriz ? gx + off : gx, isHoriz ? gy : gy + off, gr, 0, 2 * Math.PI);
+          ctx.fill();
+        });
       }
     } else if (profile.type === 'silver-leaf') {
-      // Antiqued silver with graphite wash
-      ctx.globalAlpha = 0.25;
-      ctx.fillStyle = profile.shadowColor;
-      for (let s = 0; s < 300; s++) {
-        const sx = Math.random() * width;
-        const sy = Math.random() * height;
-        ctx.fillRect(sx, sy, 3 + Math.random() * 14, 1.5);
+      ctx.globalAlpha = 0.22;
+      ctx.strokeStyle = profile.shadowColor;
+      ctx.lineWidth = 1.5;
+      ctx.lineCap = 'round';
+      for (let s = 0; s < 240; s++) {
+        const sx = rng() * width;
+        const sy = rng() * height;
+        const sw = 3 + rng() * 14;
+        drawWrapped((off) => {
+          ctx.beginPath();
+          ctx.moveTo(isHoriz ? sx + off : sx, isHoriz ? sy : sy + off);
+          ctx.lineTo(isHoriz ? sx + off + sw : sx, isHoriz ? sy : sy + off + sw);
+          ctx.stroke();
+        });
       }
     }
+    ctx.globalAlpha = 1;
   } else if (mapType === 'bump') {
-    // Grayscale bump/displacement map (50% gray is neutral)
     ctx.fillStyle = '#808080';
     ctx.fillRect(0, 0, width, height);
 
-    if (profile.type === 'natural-wood' || profile.type === 'cerused-ash') {
-      const isHoriz = barOrientation === 'horizontal';
-      for (let i = 0; i < 150; i++) {
-        const pos = Math.random() * (isHoriz ? height : width);
-        const isRidge = Math.random() > 0.5;
-        ctx.strokeStyle = isRidge ? '#b0b0b0' : '#505050';
-        ctx.globalAlpha = 0.25;
-        ctx.lineWidth = 1 + Math.random() * 3;
+    // Subtle transverse bevel height profile aligned with documented inner/outer steps
+    const bevelGrad = isHoriz
+      ? ctx.createLinearGradient(0, 0, 0, height)
+      : ctx.createLinearGradient(0, 0, width, 0);
+    bevelGrad.addColorStop(0.0, '#626262');
+    bevelGrad.addColorStop(0.14, '#929292');
+    bevelGrad.addColorStop(0.50, '#808080');
+    bevelGrad.addColorStop(0.86, '#8c8c8c');
+    bevelGrad.addColorStop(1.0, '#5c5c5c');
+    ctx.fillStyle = bevelGrad;
+    ctx.fillRect(0, 0, width, height);
+
+    if (profile.type === 'natural-wood' || profile.type === 'cerused-ash' || profile.type === 'burl-walnut') {
+      for (let i = 0; i < 140; i++) {
+        const pos = rng() * (isHoriz ? height : width);
+        const isRidge = rng() > 0.5;
+        ctx.strokeStyle = isRidge ? '#a6a6a6' : '#585858';
+        ctx.globalAlpha = 0.22;
+        ctx.lineWidth = 1 + rng() * 2.5;
         ctx.beginPath();
         if (isHoriz) {
           ctx.moveTo(0, pos);
@@ -394,49 +484,76 @@ export function generateProceduralFrameCanvas(
         ctx.stroke();
       }
     } else if (profile.type === 'carved-gold') {
-      // High contrast bump map for acanthus relief
-      ctx.globalAlpha = 0.7;
-      const scrollStep = 64;
-      for (let x = 0; x < width + scrollStep; x += scrollStep) {
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(x + 20, height * 0.45, 22, 0.2 * Math.PI, 1.2 * Math.PI);
-        ctx.stroke();
+      ctx.globalAlpha = 0.55;
+      const count = Math.max(1, Math.round(spanLen / 64));
+      const exactStep = spanLen / count;
+      for (let i = 0; i < count; i++) {
+        const cx = (i + 0.32 + rng() * 0.36) * exactStep;
+        const rad = Math.min(20, height * (0.13 + rng() * 0.05));
+        drawWrapped((off) => {
+          const px = cx + off;
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 3.2;
+          ctx.beginPath();
+          ctx.arc(px, height * 0.48, rad, 0.2 * Math.PI, 1.2 * Math.PI);
+          ctx.stroke();
 
-        ctx.strokeStyle = '#202020';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(x + 20, height * 0.45 + 3, 22, 0.2 * Math.PI, 1.2 * Math.PI);
-        ctx.stroke();
+          ctx.strokeStyle = '#202020';
+          ctx.lineWidth = 2.4;
+          ctx.beginPath();
+          ctx.arc(px, height * 0.48 + 3, rad, 0.2 * Math.PI, 1.2 * Math.PI);
+          ctx.stroke();
+        });
       }
     } else {
-      // Noise grain bump
-      const imgData = ctx.getImageData(0, 0, width, height);
-      const data = imgData.data;
-      for (let k = 0; k < data.length; k += 4) {
-        const noise = (Math.random() - 0.5) * 40;
-        const val = Math.min(255, Math.max(0, 128 + noise));
-        data[k] = val;
-        data[k + 1] = val;
-        data[k + 2] = val;
+      ctx.globalAlpha = 0.12;
+      for (let k = 0; k < 220; k++) {
+        const x = rng() * width;
+        const y = rng() * height;
+        ctx.fillStyle = rng() > 0.5 ? '#9c9c9c' : '#646464';
+        drawWrapped((off) => {
+          ctx.beginPath();
+          ctx.arc(isHoriz ? x + off : x, isHoriz ? y : y + off, 2.5, 0, 2 * Math.PI);
+          ctx.fill();
+        });
       }
-      ctx.putImageData(imgData, 0, 0);
     }
+    ctx.globalAlpha = 1;
   } else if (mapType === 'roughness') {
-    // Roughness map (darker = glossier/smoother, brighter = rougher/matte)
     const baseRoughVal = Math.round(profile.roughness * 255);
     ctx.fillStyle = `rgb(${baseRoughVal}, ${baseRoughVal}, ${baseRoughVal})`;
     ctx.fillRect(0, 0, width, height);
 
     if (profile.type === 'distressed-gilt' || profile.type === 'carved-gold') {
-      // Recesses are rougher (patina), crests are glossier (burnished gold leaf)
-      ctx.globalAlpha = 0.35;
-      ctx.fillStyle = '#101010'; // glossy spots
-      for (let r = 0; r < 200; r++) {
-        ctx.fillRect(Math.random() * width, Math.random() * height, 12, 12);
+      ctx.globalAlpha = 0.14;
+      ctx.fillStyle = '#181818';
+      for (let r = 0; r < 180; r++) {
+        const rx = rng() * width;
+        const ry = rng() * height;
+        const rr = 3 + rng() * 5;
+        drawWrapped((off) => {
+          ctx.beginPath();
+          ctx.arc(isHoriz ? rx + off : rx, isHoriz ? ry : ry + off, rr, 0, 2 * Math.PI);
+          ctx.fill();
+        });
+      }
+    } else {
+      ctx.globalAlpha = 0.10;
+      ctx.strokeStyle = `rgb(${Math.max(20, baseRoughVal - 28)}, ${Math.max(20, baseRoughVal - 28)}, ${Math.max(20, baseRoughVal - 28)})`;
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      for (let r = 0; r < 140; r++) {
+        const rx = rng() * width;
+        const ry = rng() * height;
+        drawWrapped((off) => {
+          ctx.beginPath();
+          ctx.moveTo(isHoriz ? rx + off : rx, isHoriz ? ry : ry + off);
+          ctx.lineTo(isHoriz ? rx + off + 16 : rx, isHoriz ? ry : ry + off + 16);
+          ctx.stroke();
+        });
       }
     }
+    ctx.globalAlpha = 1;
   }
 
   return canvas;

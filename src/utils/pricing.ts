@@ -132,13 +132,17 @@ export function formatDimensions(w: number, h: number, unit: DimensionUnit): str
 }
 
 export function getAspectRatioLabel(w: number, h: number): string {
-  if (!w || !h) return 'Custom';
+  if (!w || !h || w <= 0 || h <= 0) return 'Custom';
   const ratio = w / h;
   if (Math.abs(ratio - 1) < 0.05) return '1:1 Square';
-  if (Math.abs(ratio - 1.25) < 0.05 || Math.abs(ratio - 0.8) < 0.05) return '4:5 Standard Portrait';
-  if (Math.abs(ratio - 1.33) < 0.05 || Math.abs(ratio - 0.75) < 0.05) return '3:4 Classic';
-  if (Math.abs(ratio - 1.5) < 0.05 || Math.abs(ratio - 0.66) < 0.05) return '2:3 Archival';
-  if (Math.abs(ratio - 1.77) < 0.05 || Math.abs(ratio - 0.56) < 0.05) return '16:9 Panoramic';
-  return `${w.toFixed(1)}:${h.toFixed(1)}`;
+  if (Math.abs(ratio - 0.8) < 0.05) return '4:5 Standard Portrait';
+  if (Math.abs(ratio - 1.25) < 0.05) return '5:4 Landscape';
+  if (Math.abs(ratio - 0.75) < 0.05) return '3:4 Classic';
+  if (Math.abs(ratio - 1.333) < 0.05) return '4:3 Classic Landscape';
+  if (Math.abs(ratio - 0.667) < 0.05) return '2:3 Archival';
+  if (Math.abs(ratio - 1.5) < 0.05) return '3:2 Archival Landscape';
+  if (Math.abs(ratio - 0.5625) < 0.05) return '9:16 Vertical Portrait';
+  if (Math.abs(ratio - 1.778) < 0.05) return '16:9 Panoramic Landscape';
+  return `${w.toFixed(1)}:${h.toFixed(1)} ${w > h ? 'Landscape' : 'Portrait'}`;
 }
 

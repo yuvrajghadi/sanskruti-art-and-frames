@@ -97,6 +97,103 @@ export const WALL_COLOR_MAP: Record<WallColorPreset, { label: string; hex: strin
   'prussian': { label: 'Prussian Slate', hex: '#1E293B' },
 };
 
+export type FrameOrientation = 'portrait' | 'landscape' | 'square';
+
+export interface RectangularMemory {
+  width: number;
+  height: number;
+  unit: DimensionUnit;
+}
+
+/**
+ * Derives orientation strictly from current physical width and height.
+ */
+export function getFrameOrientation(width: number, height: number): FrameOrientation {
+  if (width === height) return 'square';
+  return width > height ? 'landscape' : 'portrait';
+}
+
+function clampStudioDimension(val: number, unit: DimensionUnit): number {
+  const minVal = unit === 'in' ? 4 : 10;
+  const maxVal = unit === 'in' ? 96 : 244;
+  return Math.round(Math.min(maxVal, Math.max(minVal, val)) * 10) / 10;
+}
+
+function convertDimensionBetweenUnits(
+  val: number,
+  fromUnit: DimensionUnit,
+  toUnit: DimensionUnit
+): number {
+  if (fromUnit === toUnit) return val;
+  return toUnit === 'cm' ? val * 2.54 : val / 2.54;
+}
+
+/**
+ * Resolves next width/height when switching between Portrait, Landscape, and Square,
+ * preserving rectangular memory across Square toggles and honoring unit bounds.
+ */
+export function resolveOrientationDimensions(
+  target: FrameOrientation,
+  currentWidth: number,
+  currentHeight: number,
+  unit: DimensionUnit,
+  lastRect: RectangularMemory | null
+): { width: number; height: number; nextLastRect: RectangularMemory | null } {
+  const currentOrientation = getFrameOrientation(currentWidth, currentHeight);
+  const updatedLastRect: RectangularMemory | null =
+    currentWidth !== currentHeight
+      ? { width: currentWidth, height: currentHeight, unit }
+      : lastRect;
+
+  if (target === currentOrientation) {
+    return { width: currentWidth, height: currentHeight, nextLastRect: updatedLastRect };
+  }
+
+  if (target === 'square') {
+    const side = clampStudioDimension(Math.min(currentWidth, currentHeight), unit);
+    return { width: side, height: side, nextLastRect: updatedLastRect };
+  }
+
+  // Portrait <-> Landscape swap when non-square
+  if (currentWidth !== currentHeight) {
+    return {
+      width: clampStudioDimension(currentHeight, unit),
+      height: clampStudioDimension(currentWidth, unit),
+      nextLastRect: updatedLastRect,
+    };
+  }
+
+  // Switching out of Square: restore saved rectangular proportions if available
+  if (updatedLastRect && updatedLastRect.width !== updatedLastRect.height) {
+    const wConverted = clampStudioDimension(
+      convertDimensionBetweenUnits(updatedLastRect.width, updatedLastRect.unit, unit),
+      unit
+    );
+    const hConverted = clampStudioDimension(
+      convertDimensionBetweenUnits(updatedLastRect.height, updatedLastRect.unit, unit),
+      unit
+    );
+    const shortSide = Math.min(wConverted, hConverted);
+    const longSide = Math.max(wConverted, hConverted);
+    if (longSide > shortSide) {
+      return target === 'portrait'
+        ? { width: shortSide, height: longSide, nextLastRect: updatedLastRect }
+        : { width: longSide, height: shortSide, nextLastRect: updatedLastRect };
+    }
+  }
+
+  // Direct Square fallback (e.g. opened via ?w=12&h=12): derive a valid 4:5 / 5:4 rectangle within bounds
+  const side = clampStudioDimension(currentWidth, unit);
+  const expanded = clampStudioDimension(side * 1.25, unit);
+  const contracted = clampStudioDimension(side * 0.8, unit);
+  const shortSide = expanded > side ? side : contracted;
+  const longSide = expanded > side ? expanded : side;
+
+  return target === 'portrait'
+    ? { width: shortSide, height: longSide, nextLastRect: updatedLastRect }
+    : { width: longSide, height: shortSide, nextLastRect: updatedLastRect };
+}
+
 interface CustomFramingStudioProps {
   selectedFrame: FrameSample | null;
   allFrames: FrameSample[];
@@ -252,6 +349,30 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
   const outerWidthStr = outerWidthNum.toFixed(2);
   const outerHeightStr = outerHeightNum.toFixed(2);
   const aspectRatio = getAspectRatioLabel(width, height);
+  const currentOrientation = getFrameOrientation(width, height);
+  const lastRectRef = useRef<RectangularMemory | null>(
+    width !== height ? { width, height, unit } : null
+  );
+
+  // Remember latest non-square dimensions so Square -> Portrait/Landscape restores them cleanly
+  useEffect(() => {
+    if (width !== height) {
+      lastRectRef.current = { width, height, unit };
+    }
+  }, [width, height, unit]);
+
+  const handleOrientationChange = (target: FrameOrientation) => {
+    const resolved = resolveOrientationDimensions(
+      target,
+      width,
+      height,
+      unit,
+      lastRectRef.current
+    );
+    lastRectRef.current = resolved.nextLastRect;
+    if (resolved.width !== width) onWidthChange(resolved.width);
+    if (resolved.height !== height) onHeightChange(resolved.height);
+  };
 
   // Unit toggle handler
   const handleUnitToggle = (targetUnit: DimensionUnit) => {
@@ -268,17 +389,11 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
 
   // Stepper adjustments with bounds clamping
   const handleAdjustWidth = (delta: number) => {
-    const minVal = unit === 'in' ? 4 : 10;
-    const maxVal = unit === 'in' ? 96 : 244;
-    const nextVal = Math.min(maxVal, Math.max(minVal, width + delta));
-    onWidthChange(Math.round(nextVal * 10) / 10);
+    onWidthChange(clampStudioDimension(width + delta, unit));
   };
 
   const handleAdjustHeight = (delta: number) => {
-    const minVal = unit === 'in' ? 4 : 10;
-    const maxVal = unit === 'in' ? 96 : 244;
-    const nextVal = Math.min(maxVal, Math.max(minVal, height + delta));
-    onHeightChange(Math.round(nextVal * 10) / 10);
+    onHeightChange(clampStudioDimension(height + delta, unit));
   };
 
   // Copy shareable link
@@ -645,6 +760,77 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                 <span className="font-mono text-xs text-[#727874] uppercase tracking-wider">
                   {aspectRatio}
                 </span>
+              </div>
+
+              {/* Frame Orientation Segmented Control (Portrait / Landscape / Square) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span
+                    id="frame-orientation-label"
+                    className="text-xs uppercase font-semibold tracking-wider text-[#424844]"
+                  >
+                    Orientation
+                  </span>
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-[#727874]">
+                    {currentOrientation === 'portrait'
+                      ? 'Height > Width'
+                      : currentOrientation === 'landscape'
+                      ? 'Width > Height'
+                      : 'Width = Height'}
+                  </span>
+                </div>
+                <div
+                  role="radiogroup"
+                  aria-labelledby="frame-orientation-label"
+                  className="grid grid-cols-3 gap-1.5 bg-[#F1F4EF] p-1 rounded-sm border border-[#E8E4DA]"
+                >
+                  {(
+                    [
+                      {
+                        id: 'portrait' as FrameOrientation,
+                        label: 'Portrait',
+                        iconClass: 'w-2.5 h-3.5',
+                        title: 'Portrait orientation (Height greater than Width)',
+                      },
+                      {
+                        id: 'landscape' as FrameOrientation,
+                        label: 'Landscape',
+                        iconClass: 'w-3.5 h-2.5',
+                        title: 'Landscape orientation (Width greater than Height)',
+                      },
+                      {
+                        id: 'square' as FrameOrientation,
+                        label: 'Square',
+                        iconClass: 'w-3 h-3',
+                        title: 'Square orientation (Width equals Height)',
+                      },
+                    ]
+                  ).map((opt) => {
+                    const isSelected = currentOrientation === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={isSelected}
+                        data-testid={`orientation-${opt.id}`}
+                        title={opt.title}
+                        onClick={() => handleOrientationChange(opt.id)}
+                        className={`min-h-[40px] px-2 py-2 rounded-xs text-xs font-semibold tracking-wide transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#1B3B2B] text-white shadow-xs'
+                            : 'text-[#424844] hover:text-[#191C1A] hover:bg-white/70'
+                        }`}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`${opt.iconClass} border-[1.5px] border-current rounded-[1px] shrink-0`}
+                        />
+                        <span>{opt.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Dimensions Inputs with Steppers */}

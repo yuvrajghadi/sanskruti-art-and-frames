@@ -1,13 +1,58 @@
 import { FrameSample, ArtworkOption, MatOption, WallColor } from '../types';
 import { WORKSHOP_MOULDINGS } from './workshopSamples';
 
+/**
+ * Generates an honest, deterministic non-photographic architectural swatch SVG data URI
+ * from a legacy profile's documented colour and finish metadata (no broken/unrelated photos).
+ */
+function buildArchitecturalSwatchUri(spec: {
+  id: string;
+  colorHex: string;
+  innerBevelHex: string;
+  outerBevelHex: string;
+  goldTone?: boolean;
+  woodGrain?: boolean;
+}): string {
+  const accentDetail = spec.woodGrain
+    ? `<g stroke="${spec.outerBevelHex}" stroke-width="1" opacity="0.28">
+        <line x1="20" y1="32" x2="210" y2="32"/>
+        <line x1="20" y1="44" x2="210" y2="44"/>
+        <line x1="20" y1="56" x2="210" y2="56"/>
+        <line x1="32" y1="20" x2="32" y2="160"/>
+        <line x1="44" y1="20" x2="44" y2="160"/>
+        <line x1="56" y1="20" x2="56" y2="160"/>
+      </g>`
+    : spec.goldTone
+      ? `<g stroke="${spec.innerBevelHex}" stroke-width="1.2" opacity="0.45" stroke-dasharray="3 4">
+          <polyline points="200,52 52,52 52,162" fill="none"/>
+        </g>`
+      : '';
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="240" height="180">
+  <rect width="240" height="180" fill="#F5F2EA"/>
+  <g stroke="#E3DDD0" stroke-width="0.75">
+    <line x1="0" y1="45" x2="240" y2="45"/><line x1="0" y1="90" x2="240" y2="90"/><line x1="0" y1="135" x2="240" y2="135"/>
+    <line x1="60" y1="0" x2="60" y2="180"/><line x1="120" y1="0" x2="120" y2="180"/><line x1="180" y1="0" x2="180" y2="180"/>
+  </g>
+  <polygon points="18,18 222,18 222,68 68,68 68,162 18,162" fill="${spec.colorHex}" stroke="${spec.outerBevelHex}" stroke-width="2"/>
+  <polygon points="18,18 222,18 212,28 28,28 28,152 18,162" fill="${spec.outerBevelHex}" opacity="0.88"/>
+  <polygon points="68,68 222,68 222,58 58,58 58,162 68,162" fill="${spec.innerBevelHex}" opacity="0.92"/>
+  ${accentDetail}
+  <line x1="18" y1="18" x2="68" y2="68" stroke="#1C1917" stroke-opacity="0.42" stroke-width="1.2"/>
+  <rect x="78" y="78" width="144" height="84" fill="#FAF8F5" stroke="#D7D0C3" stroke-width="1"/>
+  <text x="150" y="114" text-anchor="middle" font-family="monospace" font-size="10" font-weight="700" fill="#24382F">${spec.id}</text>
+  <text x="150" y="130" text-anchor="middle" font-family="sans-serif" font-size="8.5" letter-spacing="0.8" fill="#6F685E">ARCHITECTURAL SPEC</text>
+</svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
 export const LEGACY_FRAME_SAMPLES: FrameSample[] = [
   {
     id: "GLD-401",
     name: "Versailles Baroque Gilt",
     description: "Hand-carved acanthus leaf motif with 24k Florentine gold leaf finish, deep scoop profile, and antique burnished patina.",
-    thumbnailUrl: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=600&q=80",
-    cornerDetailUrl: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=1200&q=85",
+    thumbnailUrl: buildArchitecturalSwatchUri({ id: "GLD-401", colorHex: "#d4af37", innerBevelHex: "#f3e5ab", outerBevelHex: "#856214", goldTone: true }),
+    cornerDetailUrl: buildArchitecturalSwatchUri({ id: "GLD-401", colorHex: "#d4af37", innerBevelHex: "#f3e5ab", outerBevelHex: "#856214", goldTone: true }),
     category: "ornate-gold",
     profileWidth: 3.5,
     depth: 2.25,
@@ -30,8 +75,8 @@ export const LEGACY_FRAME_SAMPLES: FrameSample[] = [
     id: "WOD-102",
     name: "Tuscan Heirloom Walnut",
     description: "Solid American Black Walnut with hand-rubbed Danish oil finish, gentle cove silhouette, and prominent figured grain.",
-    thumbnailUrl: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=600&q=80",
-    cornerDetailUrl: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=85",
+    thumbnailUrl: buildArchitecturalSwatchUri({ id: "WOD-102", colorHex: "#4a3525", innerBevelHex: "#694a32", outerBevelHex: "#2b1c11", woodGrain: true }),
+    cornerDetailUrl: buildArchitecturalSwatchUri({ id: "WOD-102", colorHex: "#4a3525", innerBevelHex: "#694a32", outerBevelHex: "#2b1c11", woodGrain: true }),
     category: "classic-wood",
     profileWidth: 2.75,
     depth: 1.5,
@@ -54,8 +99,8 @@ export const LEGACY_FRAME_SAMPLES: FrameSample[] = [
     id: "GLD-408",
     name: "Imperial Roman Fluted Gilt",
     description: "Classic Neoclassical fluting flanked by beaded pearl borders, bathed in warm champagne gold with subtle red clay undertones.",
-    thumbnailUrl: "https://images.unsplash.com/photo-1582561424760-0321d75e81fa?auto=format&fit=crop&w=600&q=80",
-    cornerDetailUrl: "https://images.unsplash.com/photo-1582561424760-0321d75e81fa?auto=format&fit=crop&w=1200&q=85",
+    thumbnailUrl: buildArchitecturalSwatchUri({ id: "GLD-408", colorHex: "#e5c158", innerBevelHex: "#f9e8a2", outerBevelHex: "#9b781e", goldTone: true }),
+    cornerDetailUrl: buildArchitecturalSwatchUri({ id: "GLD-408", colorHex: "#e5c158", innerBevelHex: "#f9e8a2", outerBevelHex: "#9b781e", goldTone: true }),
     category: "antique-gilt",
     profileWidth: 3.0,
     depth: 1.85,
@@ -78,8 +123,8 @@ export const LEGACY_FRAME_SAMPLES: FrameSample[] = [
     id: "WOD-109",
     name: "Viennese Burl & Ebony Liner",
     description: "Rare Carpathian elm burl veneer with warm honey amber tones, complemented by an inset matte ebony sight-line fillet.",
-    thumbnailUrl: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=600&q=80",
-    cornerDetailUrl: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1200&q=85",
+    thumbnailUrl: buildArchitecturalSwatchUri({ id: "WOD-109", colorHex: "#7c4a22", innerBevelHex: "#1a1a1a", outerBevelHex: "#4d290e", woodGrain: true }),
+    cornerDetailUrl: buildArchitecturalSwatchUri({ id: "WOD-109", colorHex: "#7c4a22", innerBevelHex: "#1a1a1a", outerBevelHex: "#4d290e", woodGrain: true }),
     category: "classic-wood",
     profileWidth: 3.25,
     depth: 2.0,
@@ -102,8 +147,8 @@ export const LEGACY_FRAME_SAMPLES: FrameSample[] = [
     id: "GLD-415",
     name: "Palazzo Rococo Filigree",
     description: "Dramatic pierced openwork corner cartouche featuring scrolling vines, scallop shells, and lustrous warm gold leaf.",
-    thumbnailUrl: "https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?auto=format&fit=crop&w=600&q=80",
-    cornerDetailUrl: "https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?auto=format&fit=crop&w=1200&q=85",
+    thumbnailUrl: buildArchitecturalSwatchUri({ id: "GLD-415", colorHex: "#cfa63a", innerBevelHex: "#f0d57e", outerBevelHex: "#6e4e0b", goldTone: true }),
+    cornerDetailUrl: buildArchitecturalSwatchUri({ id: "GLD-415", colorHex: "#cfa63a", innerBevelHex: "#f0d57e", outerBevelHex: "#6e4e0b", goldTone: true }),
     category: "ornate-gold",
     profileWidth: 4.25,
     depth: 2.75,
@@ -126,8 +171,8 @@ export const LEGACY_FRAME_SAMPLES: FrameSample[] = [
     id: "MOD-201",
     name: "SoHo Minimalist White Oak",
     description: "Clean deep-profile floating gallery frame in rift-sawn natural white oak with razor-sharp 45° miters and minimalist face.",
-    thumbnailUrl: "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&w=600&q=80",
-    cornerDetailUrl: "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&w=1200&q=85",
+    thumbnailUrl: buildArchitecturalSwatchUri({ id: "MOD-201", colorHex: "#b89f7f", innerBevelHex: "#d6c5ad", outerBevelHex: "#8f7657", woodGrain: true }),
+    cornerDetailUrl: buildArchitecturalSwatchUri({ id: "MOD-201", colorHex: "#b89f7f", innerBevelHex: "#d6c5ad", outerBevelHex: "#8f7657", woodGrain: true }),
     category: "modern-gallery",
     profileWidth: 1.25,
     depth: 2.1,
@@ -150,8 +195,8 @@ export const LEGACY_FRAME_SAMPLES: FrameSample[] = [
     id: "WOD-114",
     name: "Manor Cerused Rustic Ash",
     description: "Deep wire-brushed ash wood highlighting the grain texture with a white ceruse pigment against a warm weathered umber ground.",
-    thumbnailUrl: "https://images.unsplash.com/photo-1549490349-8643362247b5?auto=format&fit=crop&w=600&q=80",
-    cornerDetailUrl: "https://images.unsplash.com/photo-1549490349-8643362247b5?auto=format&fit=crop&w=1200&q=85",
+    thumbnailUrl: buildArchitecturalSwatchUri({ id: "WOD-114", colorHex: "#5c4d43", innerBevelHex: "#7b695e", outerBevelHex: "#3d322b", woodGrain: true }),
+    cornerDetailUrl: buildArchitecturalSwatchUri({ id: "WOD-114", colorHex: "#5c4d43", innerBevelHex: "#7b695e", outerBevelHex: "#3d322b", woodGrain: true }),
     category: "classic-wood",
     profileWidth: 2.5,
     depth: 1.6,
@@ -174,8 +219,8 @@ export const LEGACY_FRAME_SAMPLES: FrameSample[] = [
     id: "GLD-422",
     name: "Venetian Beaded Cassetta",
     description: "Classical Italian Cassetta profile with a recessed frieze panel, fine beaded inner liner, and burnished Dutch gold leaf.",
-    thumbnailUrl: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=600&q=80",
-    cornerDetailUrl: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1200&q=85",
+    thumbnailUrl: buildArchitecturalSwatchUri({ id: "GLD-422", colorHex: "#caa035", innerBevelHex: "#e8c35f", outerBevelHex: "#825d10", goldTone: true }),
+    cornerDetailUrl: buildArchitecturalSwatchUri({ id: "GLD-422", colorHex: "#caa035", innerBevelHex: "#e8c35f", outerBevelHex: "#825d10", goldTone: true }),
     category: "antique-gilt",
     profileWidth: 3.1,
     depth: 1.9,
