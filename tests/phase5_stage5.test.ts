@@ -65,7 +65,7 @@ const validWithEmail: CustomerDetails = {
 };
 
 const snap = createQuotationSnapshot({
-  frame: WORKSHOP_MOULDINGS[0], // SAA-FLR-01
+  frame: WORKSHOP_MOULDINGS[0], // SAA-BGD-08
   width: 20,
   height: 24,
   unit: 'in',
@@ -86,7 +86,7 @@ const msg = formatQuotationWhatsAppMessage(snap);
 
 // Check Reference, Specs & Customer Info
 assert(msg.includes('#SA-Q-2026-5501'), 'Must contain quotation reference number');
-assert(msg.includes('Florentine Acanthus Baroque Gilt') && msg.includes('SAA-FLR-01'), 'Must contain moulding name & SKU');
+assert(msg.includes('Brushed Modern Gallery Gold') && msg.includes('SAA-BGD-08'), 'Must contain moulding name & SKU');
 assert(msg.includes('20 × 24 in'), 'Must contain exact opening dimensions & unit');
 assert(msg.includes('Museum Cotton Rag (Off-White)'), 'Must contain matboard details');
 assert(msg.includes('Girl with a Pearl Earring'), 'Must contain artwork title');

@@ -67,27 +67,27 @@ recordTest('2D Geometry', '45° miter & sightline geometry validity', geomPass, 
 
 // 3. Dynamic Realistic Material Engine
 console.log('\n--- SUITE 3: DYNAMIC REALISTIC MATERIAL ENGINE ---');
-// 3.1: Profile A: Florentine Acanthus Baroque Gilt (SAA-FLR-01)
-const flrFrame = FRAME_SAMPLES.find(f => f.id === 'SAA-FLR-01')!;
-const flrProf = getFrameMaterialProfile(flrFrame);
-const flrPass = flrProf.type === 'carved-gold' && flrProf.metalness >= 0.88 && flrProf.hasBeadedFillet && flrProf.hasCrossHatching;
-recordTest('Realistic Material Engine', 'Profile A (Florentine Acanthus SAA-FLR-01) classification', flrPass, `Type: ${flrProf.type}, metalness: ${flrProf.metalness}, beaded: ${flrProf.hasBeadedFillet}, hatching: ${flrProf.hasCrossHatching}`);
+// 3.1: Profile A: Ornate Antique Gold Baroque Masterpiece (SAA-AGB-15)
+const agbFrame = FRAME_SAMPLES.find(f => f.id === 'SAA-AGB-15')!;
+const agbProf = getFrameMaterialProfile(agbFrame);
+const agbPass = agbProf.type === 'carved-gold' && agbProf.metalness >= 0.88 && agbProf.hasBeadedFillet && agbProf.hasCrossHatching;
+recordTest('Realistic Material Engine', 'Profile A (Antique Gold Baroque SAA-AGB-15) classification', agbPass, `Type: ${agbProf.type}, metalness: ${agbProf.metalness}, beaded: ${agbProf.hasBeadedFillet}, hatching: ${agbProf.hasCrossHatching}`);
 
-// 3.2: Profile B: Venetian Distressed Gold Leaf (SAA-VEN-02)
-const venFrame = FRAME_SAMPLES.find(f => f.id === 'SAA-VEN-02')!;
-const venProf = getFrameMaterialProfile(venFrame);
-const venPass = venProf.type === 'distressed-gilt' && venProf.metalness >= 0.80 && venProf.boleColor === '#7a2b1b';
-recordTest('Realistic Material Engine', 'Profile B (Venetian Distressed SAA-VEN-02) classification', venPass, `Type: ${venProf.type}, metalness: ${venProf.metalness}, bole: ${venProf.boleColor}`);
+// 3.2: Profile B: Ornate Burgundy Bole & Vintage Gold (SAA-BVG-19)
+const bvgFrame = FRAME_SAMPLES.find(f => f.id === 'SAA-BVG-19')!;
+const bvgProf = getFrameMaterialProfile(bvgFrame);
+const bvgPass = bvgProf.type === 'distressed-gilt' && bvgProf.metalness >= 0.80 && bvgProf.boleColor === '#7a2b1b';
+recordTest('Realistic Material Engine', 'Profile B (Burgundy Bole & Gold SAA-BVG-19) classification', bvgPass, `Type: ${bvgProf.type}, metalness: ${bvgProf.metalness}, bole: ${bvgProf.boleColor}`);
 
-// 3.3: Profile C: Scandinavian Natural White Oak (SAA-OAK-03)
-const oakFrame = FRAME_SAMPLES.find(f => f.id === 'SAA-OAK-03')!;
+// 3.3: Profile C: Elegant Woodgrain & Gilded Fillet (SAA-EWG-12)
+const oakFrame = FRAME_SAMPLES.find(f => f.id === 'SAA-EWG-12')!;
 const oakProf = getFrameMaterialProfile(oakFrame);
 const oakPass = oakProf.type === 'natural-wood' && oakProf.metalness <= 0.05 && oakProf.roughness >= 0.65 && oakProf.grainOrientation === 'horizontal';
-recordTest('Realistic Material Engine', 'Profile C (Scandinavian Oak SAA-OAK-03) classification', oakPass, `Type: ${oakProf.type}, metalness: ${oakProf.metalness}, roughness: ${oakProf.roughness}, grain: ${oakProf.grainOrientation}`);
+recordTest('Realistic Material Engine', 'Profile C (Woodgrain & Gold SAA-EWG-12) classification', oakPass, `Type: ${oakProf.type}, metalness: ${oakProf.metalness}, roughness: ${oakProf.roughness}, grain: ${oakProf.grainOrientation}`);
 
 // 3.4: Visual Differentiation check: Verify all 3 test profiles are strictly unique
-const diffPass = flrProf.type !== venProf.type && venProf.type !== oakProf.type && flrProf.metalness !== oakProf.metalness;
-recordTest('Realistic Material Engine', 'Visual differentiation across test profiles (A, B, C)', diffPass, `Distinct materials: ${flrProf.type} vs ${venProf.type} vs ${oakProf.type}`);
+const diffPass = agbProf.type !== bvgProf.type && bvgProf.type !== oakProf.type && agbProf.metalness !== oakProf.metalness;
+recordTest('Realistic Material Engine', 'Visual differentiation across test profiles (A, B, C)', diffPass, `Distinct materials: ${agbProf.type} vs ${bvgProf.type} vs ${oakProf.type}`);
 
 // 4. Three.js 3D Engine with 45° Miter Extrusion
 console.log('\n--- SUITE 4: 3D THREE.JS 45° MITER EXTRUSION ---');
@@ -96,10 +96,11 @@ try {
   const frameGroup = new THREE.Group();
   scene.add(frameGroup);
 
+  const agbRef = FRAME_SAMPLES.find(f => f.id === 'SAA-AGB-15')!;
   const baseHeight = 8.5;
   const baseWidth = baseHeight * (16 / 20);
-  const profileW = Math.max(0.4, (flrFrame.profileWidth / 12) * 2.2);
-  const frameDepth = Math.max(0.35, (flrFrame.depth / 12) * 2.4);
+  const profileW = Math.max(0.4, (agbRef.profileWidth / 12) * 2.2);
+  const frameDepth = Math.max(0.35, (agbRef.depth / 12) * 2.4);
   const totalW = baseWidth + profileW * 2;
   const totalH = baseHeight + profileW * 2;
 
@@ -160,8 +161,10 @@ try {
 
 // 5. Catalog Data Integrity
 console.log('\n--- SUITE 5: CATALOG INTEGRITY ---');
-const framesValid = FRAME_SAMPLES.length >= 15 && FRAME_SAMPLES.every(f => f.basePricePerFoot > 0 && f.profileWidth > 0);
-recordTest('Catalog Integrity', 'All profiles loaded (incl. 7 real workshop mouldings) with valid pricing & profile dimensions', framesValid, `${FRAME_SAMPLES.length} profiles validated`);
+const retiredIds = ['SAA-FLR-01', 'SAA-VEN-02', 'SAA-OAK-03', 'SAA-CRU-04', 'SAA-IMP-05', 'SAA-TUS-06', 'SAA-SIL-07'];
+const retiredAbsent = retiredIds.every(id => !FRAME_SAMPLES.some(f => f.id === id));
+const framesValid = FRAME_SAMPLES.length === 25 && retiredAbsent && FRAME_SAMPLES.every(f => f.basePricePerFoot > 0 && f.profileWidth > 0);
+recordTest('Catalog Integrity', 'All 25 active profiles loaded (7 retired chevrons excluded) with valid pricing & profile dimensions', framesValid, `${FRAME_SAMPLES.length} profiles validated, retired absent: ${retiredAbsent}`);
 
 const matsValid = MAT_OPTIONS.length === 4;
 recordTest('Catalog Integrity', 'All 4 archival mat options present', matsValid, `${MAT_OPTIONS.length} mat options`);
@@ -174,7 +177,7 @@ console.log('\n--- SUITE 6: ROUTING LOGIC CONTRACT ---');
 const rHome = parseRoute('/');
 const rCatalog = parseRoute('/catalog');
 const rConfig = parseRoute('/configurator');
-const rConfigParam = parseRoute('/configurator/SAA-FLR-01');
+const rConfigParam = parseRoute('/configurator/SAA-AGB-15');
 const rStudio = parseRoute('/studio');
 const rReview = parseRoute('/review');
 
@@ -183,7 +186,7 @@ const routePass =
   rCatalog.route === 'catalog' &&
   rConfig.route === 'configure' &&
   rConfigParam.route === 'configure' &&
-  rConfigParam.frameId === 'SAA-FLR-01' &&
+  rConfigParam.frameId === 'SAA-AGB-15' &&
   rStudio.route === 'studio' &&
   rReview.route === 'review';
 
@@ -196,20 +199,12 @@ recordTest(
 
 // 7. Photometric AI Moulding Reconstruction Assets
 console.log('\n--- SUITE 7: PHOTOMETRIC MOULDING RECONSTRUCTION ASSETS ---');
-const recFlr = RECONSTRUCTED_MOULDING_REGISTRY['SAA-FLR-01'];
-const recFlrPass = !!recFlr && 
-  recFlr.profileCurve.length >= 8 && 
-  recFlr.pbr.metalness === 0.90 && 
-  recFlr.segmentationQuad.apexOuter[0] > 0;
-recordTest('Moulding Reconstruction', 'Florentine Baroque (SAA-FLR-01) photometric profile curve & quad calibration', recFlrPass, `Profile curve points: ${recFlr.profileCurve.length}, normal strength: ${recFlr.pbr.normalStrength}, period: ${recFlr.metadata.patternPeriodPixels}px`);
-
-const recVen = RECONSTRUCTED_MOULDING_REGISTRY['SAA-VEN-02'];
-const recVenPass = !!recVen && recVen.profileCurve.length >= 5 && recVen.pbr.metalness === 0.84;
-recordTest('Moulding Reconstruction', 'Venetian Distressed (SAA-VEN-02) photometric profile & bole calibration', recVenPass, `Profile curve points: ${recVen.profileCurve.length}, metalness: ${recVen.pbr.metalness}`);
-
-const recOak = RECONSTRUCTED_MOULDING_REGISTRY['SAA-OAK-03'];
-const recOakPass = !!recOak && recOak.profileCurve.length >= 5 && recOak.pbr.metalness === 0.04 && recOak.pbr.roughness >= 0.65;
-recordTest('Moulding Reconstruction', 'Scandinavian Oak (SAA-OAK-03) photometric grain profile & PBR calibration', recOakPass, `Profile curve points: ${recOak.profileCurve.length}, roughness: ${recOak.pbr.roughness}`);
+const recBgd = RECONSTRUCTED_MOULDING_REGISTRY['SAA-BGD-08'];
+const recBgdPass = !!recBgd &&
+  recBgd.isRectangularFrame === true &&
+  recBgd.profileCurve.length >= 4 &&
+  recBgd.pbr.metalness === 0.85;
+recordTest('Moulding Reconstruction', 'Brushed Champagne Gold (SAA-BGD-08) studio rectangular calibration', recBgdPass, `Profile curve points: ${recBgd?.profileCurve?.length}, metalness: ${recBgd?.pbr?.metalness}`);
 
 const recMhg = RECONSTRUCTED_MOULDING_REGISTRY['SAA-MHG-23'];
 const recMhgPass = !!recMhg && 

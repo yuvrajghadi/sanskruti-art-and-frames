@@ -41,7 +41,7 @@ const FEATURED_STITCH_PROFILES: FeaturedProfile[] = [
     categoryFilter: 'baroque gold',
     finishDescription: 'Espresso & Antiqued Gold Leaf',
     imageSrc: '/mouldings/ornate-antique-gold-baroque-frame.png',
-    mappedId: 'SAA-FLR-01',
+    mappedId: 'SAA-AGB-15',
     colSpan: 'lg:col-span-7',
     aspectClass: 'aspect-[16/10]'
   },
@@ -52,7 +52,7 @@ const FEATURED_STITCH_PROFILES: FeaturedProfile[] = [
     categoryFilter: 'gold',
     finishDescription: 'Burnished Gold Relief',
     imageSrc: '/mouldings/ornate-antique-gold-picture-frame-1.png',
-    mappedId: 'SAA-VEN-02',
+    mappedId: 'SAA-AGP-16',
     colSpan: 'lg:col-span-5',
     offsetClass: 'lg:mt-16',
     aspectClass: 'aspect-[4/3]'
@@ -63,8 +63,8 @@ const FEATURED_STITCH_PROFILES: FeaturedProfile[] = [
     category: 'mahogany',
     categoryFilter: 'mahogany baroque',
     finishDescription: 'Mahogany & Gold Trim',
-    imageSrc: '/mouldings/ornate-antique-gold-scrollwork-frame.png',
-    mappedId: 'SAA-TUS-06',
+    imageSrc: '/mouldings/ornate-mahogany-and-gold-frame.png',
+    mappedId: 'SAA-MHG-23',
     colSpan: 'lg:col-span-5',
     offsetClass: 'lg:mt-gutter-xl',
     aspectClass: 'aspect-[4/3]'
@@ -203,7 +203,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <div className="lg:col-span-7 relative">
                 <div className="bg-forest-deep p-gutter-sm md:p-gutter-md border border-accent/40 shadow-subtle-card">
                   <img 
-                    src="/mouldings/moulding-1.jpg" 
+                    src="/mouldings/ornate-antique-gold-baroque-frame.png" 
                     alt="Ornate antique gold and carved wood picture frames arranged in a forest green gallery atelier" 
                     className="w-full aspect-[16/10] object-cover"
                   />
@@ -313,7 +313,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   onClick={() => onNavigateToConfigurator(undefined, 'catalog')}
                   className="font-label text-label-sm uppercase tracking-widest text-light-primary hover:text-light-secondary underline"
                 >
-                  View All 32 Catalogue Profiles →
+                  View All {FRAME_SAMPLES.length} Catalogue Profiles →
                 </button>
               </div>
             </div>
@@ -420,7 +420,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <div className="lg:col-span-7">
                 <div className="border border-accent/40 p-gutter-sm bg-light-primary/30">
                   <img 
-                    src="/mouldings/moulding-5.jpg" 
+                    src="/mouldings/ornate-golden-baroque-picture-frame.png" 
                     alt="Artisan hand-finishing antique gold leaf decorative picture frame moulding" 
                     className="w-full aspect-[4/3] object-cover"
                   />
@@ -444,7 +444,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <div className="grid grid-cols-2 gap-gutter-lg items-end pt-gutter-md border-t border-accent/30">
                   <div className="border border-accent/30 p-1.5">
                     <img 
-                      src="/mouldings/moulding-2.jpg" 
+                      src="/mouldings/ornate-antique-bronze-baroque-frame.png" 
                       alt="Precision mitred corner joint of carved mahogany and antique bronze moulding" 
                       className="w-full aspect-[3/4] object-cover"
                     />
@@ -558,7 +558,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <div className="grid grid-cols-12 gap-gutter-md items-center bg-light-surface p-gutter-md border border-light-outline-variant/60">
                   <div className="col-span-5">
                     <img 
-                      src="/mouldings/moulding-3.jpg" 
+                      src="/mouldings/elegant-dark-wood-frame-with-gold-trim.png" 
                       alt="Decorative picture frame corner chevron samples with precision joinery" 
                       className="w-full aspect-square object-cover"
                     />
@@ -588,7 +588,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <div className="lg:col-span-7 order-1 lg:order-2">
                 <div className="bg-light-surface p-gutter-md border border-light-outline-variant/60 shadow-subtle-card">
                   <img 
-                    src="/mouldings/moulding-6.jpg" 
+                    src="/mouldings/ornate-empty-antique-gold-frame.png" 
                     alt="Large fine art painting framed in ornate antique bronze moulding inside a warm gallery room" 
                     className="w-full aspect-[4/3] object-cover"
                   />

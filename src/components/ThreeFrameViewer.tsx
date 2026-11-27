@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { FrameSample, MatOption, ArtworkOption, DimensionUnit, ArtworkFitMode } from '../types';
 import { getFrameMaterialProfile, generateProceduralFrameCanvas } from '../utils/frameRendering';
-import { reconstructMouldingTextures } from '../utils/mouldingReconstruction';
+import { reconstructMouldingTextures, RECONSTRUCTED_MOULDING_REGISTRY } from '../utils/mouldingReconstruction';
+import { computePhysicalMetrics, buildCrossSectionLoop, buildMiteredRailBuffers, FrameSide } from '../utils/frameGeometry';
 
 export type LightingEnv = '3000k' | '5500k' | '2400k' | 'studio';
 export type CameraAngle = 'corner' | 'front' | 'cross-section' | 'perspective';
@@ -177,7 +179,17 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.05;
       rendererRef.current = renderer;
+
+      // Procedural studio IBL environment so high-metalness gold/silver mouldings render with authentic luster
+      const pmremGenerator = new THREE.PMREMGenerator(renderer);
+      const roomEnv = new RoomEnvironment();
+      const envRT = pmremGenerator.fromScene(roomEnv, 0.04);
+      scene.environment = envRT.texture;
+      roomEnv.dispose();
+      pmremGenerator.dispose();
 
       container.innerHTML = '';
       container.appendChild(renderer.domElement);
@@ -187,21 +199,22 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
       ambientLightRef.current = ambientLight;
       scene.add(ambientLight);
 
-      const keyLight = new THREE.DirectionalLight(0xfff1d6, 3.0);
-      keyLight.position.set(8, 12, 14);
+      const keyLight = new THREE.DirectionalLight(0xfff1d6, 2.8);
+      keyLight.position.set(14, 18, 26);
       keyLight.castShadow = true;
       keyLight.shadow.mapSize.width = 1024;
       keyLight.shadow.mapSize.height = 1024;
+      keyLight.shadow.bias = -0.0008;
       keyLightRef.current = keyLight;
       scene.add(keyLight);
 
       const rimLight = new THREE.DirectionalLight(0xf4d399, 1.8);
-      rimLight.position.set(-10, -6, 8);
+      rimLight.position.set(-14, -10, 14);
       rimLightRef.current = rimLight;
       scene.add(rimLight);
 
       const topLight = new THREE.DirectionalLight(0xffffff, 1.2);
-      topLight.position.set(0, 15, 2);
+      topLight.position.set(0, 20, 6);
       scene.add(topLight);
 
       // BUILD 3D FRAME MODEL
@@ -209,20 +222,26 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
       frameGroupRef.current = frameGroup;
       scene.add(frameGroup);
 
-      // Normalization of dimensions
-      const wInches = unit === 'cm' ? width / 2.54 : width;
-      const hInches = unit === 'cm' ? height / 2.54 : height;
-      const aspect = wInches / hInches;
-
-      const baseHeight = 8.5;
-      const baseWidth = baseHeight * aspect;
-      const profileW = Math.max(0.4, (frame.profileWidth / 12) * 2.2);
-      const frameDepth = Math.max(0.35, (frame.depth / 12) * 2.4);
-      const matW = mat.id === 'mat-none' ? 0 : Math.max(0.3, (mat.borderWidth / 12) * 2.0);
-
-      const totalW = baseWidth + (profileW + matW) * 2;
-      const totalH = baseHeight + (profileW + matW) * 2;
+      // Normalization of dimensions via shared single-source-of-truth geometry (1 world unit = 1 physical inch)
+      const geom = computePhysicalMetrics(frame, width, height, unit, mat);
+      const profileW = geom.mouldingFaceIn;
+      const frameDepth = geom.mouldingDepthIn;
+      const matW = geom.matBorderIn;
+      const artW = geom.artworkWidthIn;
+      const artH = geom.artworkHeightIn;
+      const totalW = geom.outerWidthIn;
+      const totalH = geom.outerHeightIn;
       boundsRef.current = { totalW, totalH, frameDepth };
+
+      // Fit directional light shadow frustum cleanly around full physical frame bounds (up to 36x48"+)
+      const shadowHalfExtent = Math.max(totalW, totalH, 12) * 0.78;
+      keyLight.shadow.camera.left = -shadowHalfExtent;
+      keyLight.shadow.camera.right = shadowHalfExtent;
+      keyLight.shadow.camera.top = shadowHalfExtent;
+      keyLight.shadow.camera.bottom = -shadowHalfExtent;
+      keyLight.shadow.camera.near = 1;
+      keyLight.shadow.camera.far = Math.max(120, shadowHalfExtent * 6);
+      keyLight.shadow.camera.updateProjectionMatrix();
 
       // Dynamic aspect-aware camera distance fitting entire outer frame within container frustum
       const applyFitCamera = () => {
@@ -342,130 +361,79 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
         bumpScale: profile.bumpScale,
       });
 
-      // Photometric AI Reconstruction: Extract pure rectified molding from original photograph
+      // Photometric Reconstruction: Extract rectified seamless strips mapped identically via UVs on all 4 rails
       let isMounted = true;
-      let leftMeshRef: THREE.Mesh | null = null;
-      let rightMeshRef: THREE.Mesh | null = null;
 
-      reconstructMouldingTextures(frame).then(({ diffuseCanvas, normalCanvas, roughnessCanvas }) => {
+      reconstructMouldingTextures(frame, { highDpi: true }).then(({ diffuseCanvas, normalCanvas, roughnessCanvas }) => {
         if (!isMounted) return;
         const diffTex = new THREE.CanvasTexture(diffuseCanvas);
         diffTex.wrapS = THREE.RepeatWrapping;
         diffTex.wrapT = THREE.ClampToEdgeWrapping;
         diffTex.colorSpace = THREE.SRGBColorSpace;
-        diffTex.repeat.set(Math.max(1, Math.round(totalW / (profileW * 1.5))), 1);
+        diffTex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+        // Physical periodicity (3.5 * faceWidth) is baked directly into mesh UVs so all 4 rails share repeat(1, 1)
+        diffTex.repeat.set(1, 1);
 
         const normTex = new THREE.CanvasTexture(normalCanvas);
         normTex.wrapS = THREE.RepeatWrapping;
         normTex.wrapT = THREE.ClampToEdgeWrapping;
-        normTex.repeat.copy(diffTex.repeat);
+        normTex.repeat.set(1, 1);
 
         const roughTex = new THREE.CanvasTexture(roughnessCanvas);
         roughTex.wrapS = THREE.RepeatWrapping;
         roughTex.wrapT = THREE.ClampToEdgeWrapping;
-        roughTex.repeat.copy(diffTex.repeat);
+        roughTex.repeat.set(1, 1);
 
+        moldingMaterial.color.setHex(
+          patina === 'aged' ? 0xd9cfb8 : patina === 'antiqued' ? 0xebe3d2 : 0xffffff
+        );
         moldingMaterial.map = diffTex;
         moldingMaterial.normalMap = normTex;
-        moldingMaterial.normalScale.set(1.5, 1.5);
+        moldingMaterial.normalScale.set(1.35, 1.35);
         moldingMaterial.roughnessMap = roughTex;
         moldingMaterial.needsUpdate = true;
-
-        if (leftMeshRef && rightMeshRef) {
-          const diffTexV = new THREE.CanvasTexture(diffuseCanvas);
-          diffTexV.wrapS = THREE.RepeatWrapping;
-          diffTexV.wrapT = THREE.ClampToEdgeWrapping;
-          diffTexV.colorSpace = THREE.SRGBColorSpace;
-          diffTexV.repeat.set(Math.max(1, Math.round(totalH / (profileW * 1.5))), 1);
-
-          const normTexV = new THREE.CanvasTexture(normalCanvas);
-          normTexV.wrapS = THREE.RepeatWrapping;
-          normTexV.wrapT = THREE.ClampToEdgeWrapping;
-          normTexV.repeat.copy(diffTexV.repeat);
-
-          const roughTexV = new THREE.CanvasTexture(roughnessCanvas);
-          roughTexV.wrapS = THREE.RepeatWrapping;
-          roughTexV.wrapT = THREE.ClampToEdgeWrapping;
-          roughTexV.repeat.copy(diffTexV.repeat);
-
-          const verticalMaterial = moldingMaterial.clone();
-          verticalMaterial.map = diffTexV;
-          verticalMaterial.normalMap = normTexV;
-          verticalMaterial.roughnessMap = roughTexV;
-          verticalMaterial.needsUpdate = true;
-
-          leftMeshRef.material = verticalMaterial;
-          rightMeshRef.material = verticalMaterial;
-        }
       }).catch((err) => {
         console.warn('Photometric reconstruction fallback:', err);
       });
 
-      // Extrude 4 authentic 45-degree mitered trapezoidal bars
-      const extrudeSettings: THREE.ExtrudeGeometryOptions = {
-        depth: frameDepth,
-        bevelEnabled: true,
-        bevelSegments: 2,
-        steps: 1,
-        bevelSize: Math.min(0.04, profileW * 0.04),
-        bevelThickness: Math.min(0.04, frameDepth * 0.05),
-      };
+      // Build 4 symmetrical contoured 45-degree mitered rails from reconstructed cross-section curve
+      const asset = RECONSTRUCTED_MOULDING_REGISTRY[frame.id];
+      const section = buildCrossSectionLoop(
+        profileW,
+        frameDepth,
+        asset?.profileCurve,
+        asset?.rabbetDepth
+      );
 
-      // 1. Top Bar Miter Trapezoid
-      const topShape = new THREE.Shape();
-      topShape.moveTo(-totalW / 2, totalH / 2);
-      topShape.lineTo(totalW / 2, totalH / 2);
-      topShape.lineTo(totalW / 2 - profileW, totalH / 2 - profileW);
-      topShape.lineTo(-totalW / 2 + profileW, totalH / 2 - profileW);
-      topShape.closePath();
-      const topGeo = new THREE.ExtrudeGeometry(topShape, extrudeSettings);
-      const topMesh = new THREE.Mesh(topGeo, moldingMaterial);
-      topMesh.castShadow = true;
-      topMesh.receiveShadow = true;
-      frameGroup.add(topMesh);
+      for (const side of ['top', 'bottom', 'left', 'right'] as FrameSide[]) {
+        const railBuf = buildMiteredRailBuffers(side, geom, section);
+        const railGeo = new THREE.BufferGeometry();
+        railGeo.setAttribute('position', new THREE.BufferAttribute(railBuf.positions, 3));
+        railGeo.setAttribute('normal', new THREE.BufferAttribute(railBuf.normals, 3));
+        railGeo.setAttribute('uv', new THREE.BufferAttribute(railBuf.uvs, 2));
+        railGeo.setIndex(new THREE.BufferAttribute(railBuf.indices, 1));
 
-      // 2. Bottom Bar Miter Trapezoid
-      const bottomShape = new THREE.Shape();
-      bottomShape.moveTo(-totalW / 2, -totalH / 2);
-      bottomShape.lineTo(totalW / 2, -totalH / 2);
-      bottomShape.lineTo(totalW / 2 - profileW, -totalH / 2 + profileW);
-      bottomShape.lineTo(-totalW / 2 + profileW, -totalH / 2 + profileW);
-      bottomShape.closePath();
-      const bottomGeo = new THREE.ExtrudeGeometry(bottomShape, extrudeSettings);
-      const bottomMesh = new THREE.Mesh(bottomGeo, moldingMaterial);
-      bottomMesh.castShadow = true;
-      bottomMesh.receiveShadow = true;
-      frameGroup.add(bottomMesh);
+        const railMesh = new THREE.Mesh(railGeo, moldingMaterial);
+        railMesh.name = `frame-rail-${side}`;
+        railMesh.castShadow = true;
+        railMesh.receiveShadow = true;
+        frameGroup.add(railMesh);
+      }
 
-      // 3. Left Bar Miter Trapezoid
-      const leftShape = new THREE.Shape();
-      leftShape.moveTo(-totalW / 2, totalH / 2);
-      leftShape.lineTo(-totalW / 2 + profileW, totalH / 2 - profileW);
-      leftShape.lineTo(-totalW / 2 + profileW, -totalH / 2 + profileW);
-      leftShape.lineTo(-totalW / 2, -totalH / 2);
-      leftShape.closePath();
-      const leftGeo = new THREE.ExtrudeGeometry(leftShape, extrudeSettings);
-      const leftMesh = new THREE.Mesh(leftGeo, moldingMaterial);
-      leftMesh.castShadow = true;
-      leftMesh.receiveShadow = true;
-      leftMeshRef = leftMesh;
-      frameGroup.add(leftMesh);
+      // Layer ordering (Z=0 frame back -> backing -> artwork -> perforated matboard aperture)
+      const backingZ = Math.max(0.02, frameDepth * 0.08);
+      const artZ = Math.max(backingZ + 0.04, frameDepth * 0.24);
+      const backingMat = new THREE.MeshStandardMaterial({
+        color: 0x1c1815,
+        roughness: 0.95,
+        metalness: 0.0,
+      });
+      const backingGeo = new THREE.PlaneGeometry(geom.innerWidthIn + 0.08, geom.innerHeightIn + 0.08);
+      const backingMesh = new THREE.Mesh(backingGeo, backingMat);
+      backingMesh.position.set(0, 0, backingZ);
+      frameGroup.add(backingMesh);
 
-      // 4. Right Bar Miter Trapezoid
-      const rightShape = new THREE.Shape();
-      rightShape.moveTo(totalW / 2, totalH / 2);
-      rightShape.lineTo(totalW / 2, -totalH / 2);
-      rightShape.lineTo(totalW / 2 - profileW, -totalH / 2 + profileW);
-      rightShape.lineTo(totalW / 2 - profileW, totalH / 2 - profileW);
-      rightShape.closePath();
-      const rightGeo = new THREE.ExtrudeGeometry(rightShape, extrudeSettings);
-      const rightMesh = new THREE.Mesh(rightGeo, moldingMaterial);
-      rightMesh.castShadow = true;
-      rightMesh.receiveShadow = true;
-      rightMeshRef = rightMesh;
-      frameGroup.add(rightMesh);
-
-      // 5. Matboard Plane
+      // 5. Genuine Matboard with Rectangular Aperture Hole (never occludes artwork)
       if (matW > 0) {
         const matColor = new THREE.Color(mat.colorHex === 'transparent' ? '#FAF8F5' : mat.colorHex);
         const matMaterial = new THREE.MeshStandardMaterial({
@@ -473,11 +441,64 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
           roughness: 0.9,
           metalness: 0.0,
         });
-        const matGeo = new THREE.PlaneGeometry(totalW - profileW * 2, totalH - profileW * 2);
+
+        const overhang = Math.min(0.05, profileW * 0.05);
+        const outerHalfW = geom.halfInnerW + overhang;
+        const outerHalfH = geom.halfInnerH + overhang;
+        const matShape = new THREE.Shape();
+        matShape.moveTo(-outerHalfW, -outerHalfH);
+        matShape.lineTo(outerHalfW, -outerHalfH);
+        matShape.lineTo(outerHalfW, outerHalfH);
+        matShape.lineTo(-outerHalfW, outerHalfH);
+        matShape.closePath();
+
+        const holePath = new THREE.Path();
+        holePath.moveTo(-geom.halfArtW, -geom.halfArtH);
+        holePath.lineTo(-geom.halfArtW, geom.halfArtH);
+        holePath.lineTo(geom.halfArtW, geom.halfArtH);
+        holePath.lineTo(geom.halfArtW, -geom.halfArtH);
+        holePath.closePath();
+        matShape.holes.push(holePath);
+
+        const matThickness = Math.max(0.02, Math.min(0.075, frameDepth * 0.055));
+        const bevelW = Math.min(0.055, matW * 0.08);
+        const matGeo = new THREE.ExtrudeGeometry(matShape, {
+          depth: matThickness,
+          bevelEnabled: false,
+        });
         const matMesh = new THREE.Mesh(matGeo, matMaterial);
-        matMesh.position.set(0, 0, frameDepth * 0.35);
+        matMesh.name = 'matboard-aperture';
+        matMesh.position.set(0, 0, artZ + 0.015);
+        matMesh.castShadow = true;
         matMesh.receiveShadow = true;
         frameGroup.add(matMesh);
+
+        // Clean 45° archival core bevel trim around the inner aperture opening
+        const bevelShape = new THREE.Shape();
+        bevelShape.moveTo(-geom.halfArtW - bevelW, -geom.halfArtH - bevelW);
+        bevelShape.lineTo(geom.halfArtW + bevelW, -geom.halfArtH - bevelW);
+        bevelShape.lineTo(geom.halfArtW + bevelW, geom.halfArtH + bevelW);
+        bevelShape.lineTo(-geom.halfArtW - bevelW, geom.halfArtH + bevelW);
+        bevelShape.closePath();
+        const bevelHole = new THREE.Path();
+        bevelHole.moveTo(-geom.halfArtW, -geom.halfArtH);
+        bevelHole.lineTo(-geom.halfArtW, geom.halfArtH);
+        bevelHole.lineTo(geom.halfArtW, geom.halfArtH);
+        bevelHole.lineTo(geom.halfArtW, -geom.halfArtH);
+        bevelHole.closePath();
+        bevelShape.holes.push(bevelHole);
+        const bevelGeo = new THREE.ExtrudeGeometry(bevelShape, {
+          depth: Math.max(0.01, matThickness * 0.65),
+          bevelEnabled: false,
+        });
+        const bevelMat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(mat.coreHex || '#FAF8F5'),
+          roughness: 0.85,
+          metalness: 0.0,
+        });
+        const bevelMesh = new THREE.Mesh(bevelGeo, bevelMat);
+        bevelMesh.position.set(0, 0, artZ + 0.008);
+        frameGroup.add(bevelMesh);
       }
 
       // 6. Artwork Canvas Texture with Aspect-Preserving Fit vs Fill
@@ -493,8 +514,6 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
           artTexture.wrapS = THREE.ClampToEdgeWrapping;
           artTexture.wrapT = THREE.ClampToEdgeWrapping;
 
-          const artW = totalW - (profileW + matW) * 2;
-          const artH = totalH - (profileW + matW) * 2;
           const cavityAspect = artW / artH;
           const artAspect = artwork.aspectRatio || 1.0;
 
@@ -524,25 +543,24 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
 
           const artMaterial = new THREE.MeshStandardMaterial({
             map: artTexture,
-            roughness: 0.35,
-            metalness: 0.05,
+            roughness: 0.42,
+            metalness: 0.04,
           });
           const artGeo = new THREE.PlaneGeometry(artW, artH);
           const artMesh = new THREE.Mesh(artGeo, artMaterial);
-          artMesh.position.set(0, 0, frameDepth * 0.32);
+          artMesh.name = 'artwork-plane';
+          artMesh.position.set(0, 0, artZ);
           artMesh.receiveShadow = true;
           frameGroup.add(artMesh);
         },
         undefined,
         () => {
           if (!isMounted) return;
-          // Fallback artwork plane
           const fallbackMat = new THREE.MeshStandardMaterial({ color: 0x3d3120, roughness: 0.8 });
-          const artW = totalW - (profileW + matW) * 2;
-          const artH = totalH - (profileW + matW) * 2;
           const artGeo = new THREE.PlaneGeometry(artW, artH);
           const artMesh = new THREE.Mesh(artGeo, fallbackMat);
-          artMesh.position.set(0, 0, frameDepth * 0.32);
+          artMesh.name = 'artwork-plane';
+          artMesh.position.set(0, 0, artZ);
           frameGroup.add(artMesh);
         }
       );
@@ -678,6 +696,8 @@ export const ThreeFrameViewer: React.FC<ThreeFrameViewerProps> = ({
 
         // Exhaustive Three.js GPU resource disposal
         fitCameraRef.current = null;
+        scene.environment = null;
+        envRT.dispose();
         disposeThreeNode(scene);
         renderer.dispose();
 

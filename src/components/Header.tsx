@@ -41,7 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
   onTabChange,
   onReset,
   onNavigateHome,
-  catalogCount = 32,
+  catalogCount = 25,
   savedQuotationsCount = 0,
   searchQuery: externalSearchQuery,
   onSearchQuery,

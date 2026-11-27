@@ -45,7 +45,7 @@ const storageMap: Record<string, string> = {};
 // TEST GROUP 1: TAX & GST CONFIGURATION TRACE
 // -------------------------------------------------------------
 console.log('\n--- 1. TAX & GST COMMERCIAL SEPARATION ---');
-const sampleFrame = WORKSHOP_MOULDINGS[0]; // SAA-FLR-01
+const sampleFrame = WORKSHOP_MOULDINGS.find((f) => f.id === 'SAA-ABS-13')!; // 3.25" @ ₹48 base tier
 const sampleMat = MAT_OPTIONS[0]; // Museum Cotton Rag 2.5"
 const sampleArt = ARTWORK_OPTIONS[0]; // Vermeer
 const optiumGlazing = GLAZING_OPTIONS[0]; // Tru-Vue Optium (+1800)
@@ -117,7 +117,7 @@ mutableCustomer.fullName = 'CORRUPTED CUSTOMER';
 (input as any).width = 999;
 
 // Assert snapshot remains 100% pristine
-assert.strictEqual(snapshot.specifications.frameName, 'Florentine Acanthus Baroque Gilt', 'Snapshot frameName must not mutate');
+assert.strictEqual(snapshot.specifications.frameName, 'Ornate Antique Bronze & Silver Leaf', 'Snapshot frameName must not mutate');
 assert.strictEqual(snapshot.specifications.profileWidth, 3.25, 'Snapshot profileWidth must not mutate');
 assert.strictEqual(snapshot.customer.fullName, 'Arun Kulkarni', 'Snapshot customer fullName must not mutate');
 assert.strictEqual(snapshot.specifications.width, 16, 'Snapshot opening width must not mutate');

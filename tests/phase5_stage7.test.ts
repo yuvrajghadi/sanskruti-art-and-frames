@@ -43,11 +43,11 @@ console.log('\n=============================================================');
 console.log('   PHASE 5 STAGE 7: INTEGRATION & COMMERCIAL PARITY TESTS    ');
 console.log('=============================================================');
 
-// 1. Catalogue Search Alias Resolution Parity (SA-BG-402 -> SAA-FLR-01)
+// 1. Catalogue Search Alias Resolution Parity (SA-BG-402 -> SAA-AGB-15)
 const aliasTarget = resolveProfile('SA-BG-402', FRAME_SAMPLES);
-assert(aliasTarget && aliasTarget.id === 'SAA-FLR-01', 'Alias SA-BG-402 must resolve cleanly to SAA-FLR-01');
-assert.strictEqual(FRAME_SAMPLES.length, 32, 'All 32 moulding profiles must remain intact');
-console.log('[PASS] 1. Alias resolution and 32 moulding catalogue record integrity verified');
+assert(aliasTarget && aliasTarget.id === 'SAA-AGB-15', 'Alias SA-BG-402 must resolve cleanly to SAA-AGB-15');
+assert.strictEqual(FRAME_SAMPLES.length, 25, 'All 25 active moulding profiles must remain intact');
+console.log('[PASS] 1. Alias resolution and 25 moulding catalogue record integrity verified');
 
 // 2. Non-Monetary Shipping Preference Persistence Without Changing Frozen Total
 const standardPricing = calculateQuotationPricing(

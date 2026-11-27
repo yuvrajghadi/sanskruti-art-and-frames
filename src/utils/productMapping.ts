@@ -4,9 +4,9 @@ import { FrameSample } from '../types';
  * Mapping between Google Stitch showcase alias SKUs and real application catalogue profiles.
  */
 export const STITCH_SHOWCASE_MAPPINGS: Record<string, string> = {
-  'SA-BG-402': 'SAA-FLR-01', // Baroque Espresso & Gold -> Florentine Acanthus Baroque Gilt
-  'SA-AG-118': 'SAA-VEN-02', // Acanthus Burnished Gold -> Venetian Distressed Gold Leaf
-  'SA-MG-204': 'SAA-TUS-06', // Mahogany & Gold Bead -> Tuscan Walnut with Gilded Garland
+  'SA-BG-402': 'SAA-AGB-15', // Baroque Espresso & Gold -> Ornate Antique Gold Baroque Masterpiece
+  'SA-AG-118': 'SAA-AGP-16', // Acanthus Burnished Gold -> Ornate Royal Gold Leaf Gallery
+  'SA-MG-204': 'SAA-MHG-23', // Mahogany & Gold Bead -> Rich Mahogany with Gold Egg-and-Dart
   'SA-CB-309': 'SAA-BVG-19', // Crimson & Braided Bronze -> Ornate Burgundy Bole & Vintage Gold
 };
 

@@ -62,7 +62,7 @@ console.log('\n--- 2. STRICT ID LOOKUP & CORRUPTION HANDLING ---');
 clearAllQuotations();
 
 const snap1 = createQuotationSnapshot({
-  frame: WORKSHOP_MOULDINGS[0],
+  frame: WORKSHOP_MOULDINGS.find((f) => f.id === 'SAA-ABS-13')!,
   width: 20,
   height: 24,
   unit: 'in',

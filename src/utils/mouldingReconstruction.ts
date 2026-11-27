@@ -486,7 +486,7 @@ export const RECONSTRUCTED_MOULDING_REGISTRY: Record<string, ReconstructedMouldi
     rabbetDepth: 1.25,
     rabbetWidth: 0.40,
     isRectangularFrame: true,
-    rectCrop: [0.18, 0.035, 0.82, 0.215],
+    rectCrop: [0.18, 0.066, 0.82, 0.182],
     profileCurve: [
       [0.00, 0.94],
       [0.15, 0.98],
@@ -655,54 +655,162 @@ export async function reconstructMouldingTextures(
     if (asset?.rectCrop) {
       [cropMinX, cropMinY, cropMaxX, cropMaxY] = asset.rectCrop;
     } else {
-      // Automatic boundary detection for any front-facing studio frame photograph
+      // Sustained studio background/opaque boundary detector resistant to specular highlights & alpha edges
       try {
+        const probeH = Math.min(srcH, Math.floor(srcH * 0.45));
         const probeCanvas = document.createElement('canvas');
         probeCanvas.width = srcW;
-        probeCanvas.height = Math.min(srcH, 400);
+        probeCanvas.height = probeH;
         const pCtx = probeCanvas.getContext('2d');
         if (pCtx) {
           pCtx.drawImage(img, 0, 0);
-          const midX = Math.floor(srcW / 2);
-          const col = pCtx.getImageData(midX, 0, 1, probeCanvas.height).data;
+          const sampleXs = [
+            Math.floor(srcW * 0.38),
+            Math.floor(srcW * 0.50),
+            Math.floor(srcW * 0.62),
+          ];
+          const cols = sampleXs.map((sx) => pCtx.getImageData(sx, 0, 1, probeH).data);
+          const isBgRow = (y: number) => {
+            let bgVotes = 0;
+            for (const c of cols) {
+              const r = c[y * 4];
+              const g = c[y * 4 + 1];
+              const b = c[y * 4 + 2];
+              const a = c[y * 4 + 3];
+              if (a < 20 || (r > 238 && g > 238 && b > 238)) {
+                bgVotes++;
+              }
+            }
+            return bgVotes >= 2;
+          };
+
           let foundTop = -1;
           let foundInner = -1;
-          for (let y = 0; y < probeCanvas.height; y++) {
-            const r = col[y * 4];
-            const g = col[y * 4 + 1];
-            const b = col[y * 4 + 2];
-            const isWhite = r > 238 && g > 238 && b > 238;
-            if (!isWhite && foundTop === -1) {
-              foundTop = y;
-            }
-            if (foundTop !== -1 && isWhite && y > foundTop + 35 && foundInner === -1) {
-              foundInner = y;
-              break;
+          let opaqueStreak = 0;
+          let bgStreak = 0;
+
+          for (let y = 0; y < probeH; y++) {
+            const bg = isBgRow(y);
+            if (foundTop === -1) {
+              opaqueStreak = bg ? 0 : opaqueStreak + 1;
+              if (opaqueStreak >= 4) {
+                foundTop = y - 3;
+              }
+            } else if (y > foundTop + 42) {
+              bgStreak = bg ? bgStreak + 1 : 0;
+              if (bgStreak >= 10) {
+                foundInner = y - 9;
+                break;
+              }
             }
           }
-          if (foundTop !== -1 && foundInner !== -1) {
-            cropMinY = Math.max(0, (foundTop - 2) / srcH);
-            cropMaxY = Math.min(1, (foundInner + 2) / srcH);
+          if (foundTop !== -1 && foundInner !== -1 && foundInner - foundTop >= 36) {
+            // Trim strictly 2px inside both edges to guarantee 0% white studio halo
+            cropMinY = Math.max(0, (foundTop + 2) / srcH);
+            cropMaxY = Math.min(1, (foundInner - 2) / srcH);
           }
         }
       } catch {
         // Fallback to safe defaults
-        cropMinY = 0.035;
-        cropMaxY = 0.180;
+        cropMinY = 0.038;
+        cropMaxY = 0.178;
       }
     }
 
     const cropX = Math.max(0, Math.floor(cropMinX * srcW));
     const cropY = Math.max(0, Math.floor(cropMinY * srcH));
-    const cropW = Math.min(srcW - cropX, Math.floor((cropMaxX - cropMinX) * srcW));
-    const cropH = Math.min(srcH - cropY, Math.floor((cropMaxY - cropMinY) * srcH));
+    let cropW = Math.min(srcW - cropX, Math.floor((cropMaxX - cropMinX) * srcW));
+    const cropH = Math.max(16, Math.min(srcH - cropY, Math.floor((cropMaxY - cropMinY) * srcH)));
+
+    // Find best autocorrelation periodic crop length so carved/grain motifs meet cleanly at seam
+    try {
+      const sampleCanvas = document.createElement('canvas');
+      sampleCanvas.width = cropW;
+      sampleCanvas.height = cropH;
+      const sCtx = sampleCanvas.getContext('2d');
+      if (sCtx && cropW > 128) {
+        sCtx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+        const rawPx = sCtx.getImageData(0, 0, cropW, cropH).data;
+        const win = 20;
+        const minLen = Math.max(win * 3, Math.floor(cropW * 0.62));
+        const maxLen = cropW - win;
+        let bestLen = cropW;
+        let bestErr = Number.POSITIVE_INFINITY;
+        const stepY = Math.max(1, Math.floor(cropH / 24));
+        for (let cand = minLen; cand <= maxLen; cand += 2) {
+          let err = 0;
+          let count = 0;
+          for (let y = 2; y < cropH - 2; y += stepY) {
+            for (let dx = 0; dx < win; dx += 2) {
+              const i0 = (y * cropW + dx) * 4;
+              const i1 = (y * cropW + (cand - win + dx)) * 4;
+              const dr = rawPx[i0] - rawPx[i1];
+              const dg = rawPx[i0 + 1] - rawPx[i1 + 1];
+              const db = rawPx[i0 + 2] - rawPx[i1 + 2];
+              err += dr * dr + dg * dg + db * db;
+              count++;
+            }
+          }
+          const mse = err / Math.max(1, count);
+          if (mse < bestErr) {
+            bestErr = mse;
+            bestLen = cand;
+          }
+        }
+        if (bestLen >= minLen) {
+          cropW = bestLen;
+        }
+      }
+    } catch {
+      // Non-fatal: proceed with nominal cropW
+    }
 
     diffCtx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, stripW, stripH);
     const imgData = diffCtx.getImageData(0, 0, stripW, stripH);
     outData = imgData.data;
 
-    // Apply seamless cosine cross-fade on the horizontal seam for smooth tiling
-    const blendWidth = Math.min(48, Math.floor(stripW * 0.10));
+    // Profile-aware gentle longitudinal illumination leveling (removes end-to-end falloff without muting specular relief)
+    const hasRelief = Boolean(asset?.metadata?.hasOrnamentalRelief ?? (frame.textureDetails?.reliefHeight && frame.textureDetails.reliefHeight > 0.35));
+    const metalness = asset?.pbr?.metalness ?? (frame.goldTone ? 0.85 : 0.08);
+    const levelingStrength = hasRelief ? 0.55 : metalness > 0.7 ? 0.45 : 0.72;
+    const colLum = new Float32Array(stripW);
+    for (let x = 0; x < stripW; x++) {
+      let acc = 0;
+      for (let y = 0; y < stripH; y++) {
+        const idx = (y * stripW + x) * 4;
+        acc += outData[idx] * 0.299 + outData[idx + 1] * 0.587 + outData[idx + 2] * 0.114;
+      }
+      colLum[x] = acc / stripH;
+    }
+    const smoothRadius = Math.max(32, Math.floor(stripW * 0.12));
+    const smoothCol = new Float32Array(stripW);
+    let globalLumSum = 0;
+    for (let x = 0; x < stripW; x++) {
+      let sum = 0;
+      let cnt = 0;
+      for (let k = -smoothRadius; k <= smoothRadius; k += 4) {
+        const sx = (x + k + stripW) % stripW;
+        sum += colLum[sx];
+        cnt++;
+      }
+      smoothCol[x] = sum / Math.max(1, cnt);
+      globalLumSum += smoothCol[x];
+    }
+    const targetLum = globalLumSum / stripW;
+    for (let x = 0; x < stripW; x++) {
+      const ratio = targetLum / Math.max(18, smoothCol[x]);
+      const clampedRatio = Math.max(0.86, Math.min(1.16, ratio));
+      const gain = 1 + (clampedRatio - 1) * levelingStrength;
+      for (let y = 0; y < stripH; y++) {
+        const idx = (y * stripW + x) * 4;
+        outData[idx] = Math.min(255, Math.max(0, Math.round(outData[idx] * gain)));
+        outData[idx + 1] = Math.min(255, Math.max(0, Math.round(outData[idx + 1] * gain)));
+        outData[idx + 2] = Math.min(255, Math.max(0, Math.round(outData[idx + 2] * gain)));
+      }
+    }
+
+    // Apply seamless raised-cosine cross-fade across wrap seam for continuous tiling
+    const blendWidth = Math.min(64, Math.floor(stripW * 0.08));
     for (let y = 0; y < stripH; y++) {
       for (let x = 0; x < blendWidth; x++) {
         const t = x / blendWidth;
@@ -801,16 +909,20 @@ export async function reconstructMouldingTextures(
 
   const strength = asset?.pbr?.normalStrength || 1.6;
 
-  for (let y = 1; y < stripH - 1; y++) {
-    for (let x = 1; x < stripW - 1; x++) {
-      const tl = gray[(y - 1) * stripW + (x - 1)];
-      const tc = gray[(y - 1) * stripW + x];
-      const tr = gray[(y - 1) * stripW + (x + 1)];
-      const ml = gray[y * stripW + (x - 1)];
-      const mr = gray[y * stripW + (x + 1)];
-      const bl = gray[(y + 1) * stripW + (x - 1)];
-      const bc = gray[(y + 1) * stripW + x];
-      const br = gray[(y + 1) * stripW + (x + 1)];
+  for (let y = 0; y < stripH; y++) {
+    const ym1 = Math.max(0, y - 1);
+    const yp1 = Math.min(stripH - 1, y + 1);
+    for (let x = 0; x < stripW; x++) {
+      const xm1 = (x - 1 + stripW) % stripW;
+      const xp1 = (x + 1) % stripW;
+      const tl = gray[ym1 * stripW + xm1];
+      const tc = gray[ym1 * stripW + x];
+      const tr = gray[ym1 * stripW + xp1];
+      const ml = gray[y * stripW + xm1];
+      const mr = gray[y * stripW + xp1];
+      const bl = gray[yp1 * stripW + xm1];
+      const bc = gray[yp1 * stripW + x];
+      const br = gray[yp1 * stripW + xp1];
 
       const dx = (tr + 2 * mr + br) - (tl + 2 * ml + bl);
       const dy = (bl + 2 * bc + br) - (tl + 2 * tc + tr);

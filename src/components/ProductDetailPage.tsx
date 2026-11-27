@@ -82,7 +82,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               onClick={onNavigateCatalog}
               className="w-full sm:w-auto inline-flex items-center justify-center bg-light-primary hover:bg-forest-deep text-light-on-primary px-8 py-3.5 rounded-sm font-label text-label-md uppercase tracking-widest transition-colors shadow-xs gap-2 cursor-pointer"
             >
-              <span>Explore All 32 Moulding Collections</span>
+              <span>Explore All {allFrames.length} Moulding Collections</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 

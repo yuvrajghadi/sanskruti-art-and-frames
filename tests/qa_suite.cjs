@@ -3,181 +3,6 @@
 // src/data/workshopSamples.ts
 var WORKSHOP_MOULDINGS = [
   {
-    id: "SAA-FLR-01",
-    name: "Florentine Acanthus Baroque Gilt",
-    description: "Authentic guild-carved acanthus leaf scrolls with fine cross-hatching texture, beaded interior fillet, and hand-rubbed antique Florentine gold finish.",
-    thumbnailUrl: "/mouldings/moulding-1.jpg",
-    cornerDetailUrl: "/mouldings/moulding-1.jpg",
-    category: "ornate-gold",
-    isWorkshopSample: true,
-    profileWidth: 3.25,
-    depth: 2.1,
-    finish: "Antique 24k Gold Leaf with Burnt Umber Patina",
-    material: "Carved Hardwood & Aged Gesso Bole",
-    style: "Florentine Baroque",
-    basePricePerFoot: 48,
-    colorHex: "#c99738",
-    innerBevelHex: "#dfb663",
-    outerBevelHex: "#7a541a",
-    goldTone: true,
-    textureDetails: {
-      reliefHeight: 0.85,
-      filigreeStyle: "Acanthus Scroll & Crosshatch",
-      carvingPattern: "baroque",
-      sheen: "aged-patina"
-    }
-  },
-  {
-    id: "SAA-VEN-02",
-    name: "Venetian Distressed Gold Leaf",
-    description: "Beveled flat-face gallery moulding with hand-distressed gold foil patina, antique umber rub-through, and Venetian red clay bole showing along the corners.",
-    thumbnailUrl: "/mouldings/moulding-2.jpg",
-    cornerDetailUrl: "/mouldings/moulding-2.jpg",
-    category: "antique-gilt",
-    isWorkshopSample: true,
-    profileWidth: 2.5,
-    depth: 1.65,
-    finish: "Distressed Gold Leaf with Venetian Bole Rub-Through",
-    material: "Fine-Grain Lindenwood & Hand-Burnished Gesso",
-    style: "Venetian Renaissance",
-    basePricePerFoot: 42,
-    colorHex: "#b39235",
-    innerBevelHex: "#d4b353",
-    outerBevelHex: "#5c4516",
-    goldTone: true,
-    textureDetails: {
-      reliefHeight: 0.25,
-      filigreeStyle: "Mottled Gold Foil Patina",
-      carvingPattern: "distressed-burl",
-      sheen: "satin-varnish"
-    }
-  },
-  {
-    id: "SAA-OAK-03",
-    name: "Scandinavian Natural White Oak",
-    description: "Precision-milled solid white oak with prominent natural grain lines, crisp 45-degree miter joints, and an organic beeswax matte sealant.",
-    thumbnailUrl: "/mouldings/moulding-3.jpg",
-    cornerDetailUrl: "/mouldings/moulding-3.jpg",
-    category: "classic-wood",
-    isWorkshopSample: true,
-    profileWidth: 2,
-    depth: 1.5,
-    finish: "Natural Matte Beeswax & Organic Linseed Oil",
-    material: "Quarter-Sawn American White Oak",
-    style: "Nordic Modern Gallery",
-    basePricePerFoot: 34,
-    colorHex: "#d7b782",
-    innerBevelHex: "#e9d2a7",
-    outerBevelHex: "#a88450",
-    woodGrain: true,
-    textureDetails: {
-      reliefHeight: 0.08,
-      filigreeStyle: "Straight Architectural Grain",
-      carvingPattern: "smooth-miter",
-      sheen: "matte"
-    }
-  },
-  {
-    id: "SAA-CRU-04",
-    name: "Atelier Cerused Driftwood Ash",
-    description: "Wire-brushed European ash with tactile open grain fissures and contrasting white ceruse lime wash highlighting natural timber contours.",
-    thumbnailUrl: "/mouldings/moulding-4.jpg",
-    cornerDetailUrl: "/mouldings/moulding-4.jpg",
-    category: "classic-wood",
-    isWorkshopSample: true,
-    profileWidth: 2.75,
-    depth: 1.75,
-    finish: "Wire-Brushed White Ceruse on Natural Ash",
-    material: "Kiln-Dried European Ash",
-    style: "Rustic Contemporary Craftsman",
-    basePricePerFoot: 38,
-    colorHex: "#c2ab8a",
-    innerBevelHex: "#dfceb3",
-    outerBevelHex: "#8b714e",
-    woodGrain: true,
-    textureDetails: {
-      reliefHeight: 0.45,
-      filigreeStyle: "Deep Wire-Brushed Ceruse",
-      carvingPattern: "smooth-miter",
-      sheen: "matte"
-    }
-  },
-  {
-    id: "SAA-IMP-05",
-    name: "Imperial Florentine Gilded Cove",
-    description: "Lustrous high-karat gold leaf moulding featuring an ornate floral acanthus inner rim, stepped deep cove, and beaded pearl astragal along the outer ridge.",
-    thumbnailUrl: "/mouldings/moulding-5.jpg",
-    cornerDetailUrl: "/mouldings/moulding-5.jpg",
-    category: "ornate-gold",
-    isWorkshopSample: true,
-    profileWidth: 3.5,
-    depth: 2.25,
-    finish: "24k Brilliant Polished Gold Leaf with Agate Burnish",
-    material: "Carved Solid Lindenwood & Dual-Layer Gesso",
-    style: "High Renaissance Gilt",
-    basePricePerFoot: 54,
-    colorHex: "#e2aa22",
-    innerBevelHex: "#f8cd58",
-    outerBevelHex: "#8e6308",
-    goldTone: true,
-    textureDetails: {
-      reliefHeight: 0.9,
-      filigreeStyle: "Fluted Cove & Floral Astragal",
-      carvingPattern: "acanthus",
-      sheen: "high-gloss"
-    }
-  },
-  {
-    id: "SAA-TUS-06",
-    name: "Tuscan Walnut with Gilded Garland",
-    description: "Deep chocolate-toned American walnut featuring an embossed 22k gold floral vine garland centered in the cove, flanked by a burnished gold sight-line fillet.",
-    thumbnailUrl: "/mouldings/moulding-6.jpg",
-    cornerDetailUrl: "/mouldings/moulding-6.jpg",
-    category: "classic-wood",
-    isWorkshopSample: true,
-    profileWidth: 3,
-    depth: 1.85,
-    finish: "Hand-Rubbed Dark Walnut with 22k Gold Foil Filigree",
-    material: "Solid American Black Walnut & Embossed Gilt",
-    style: "Neo-Renaissance Marquetry",
-    basePricePerFoot: 44,
-    colorHex: "#4a3528",
-    innerBevelHex: "#cba142",
-    outerBevelHex: "#2c1e16",
-    woodGrain: true,
-    textureDetails: {
-      reliefHeight: 0.65,
-      filigreeStyle: "Embossed Vine & Blossom Garland",
-      carvingPattern: "fluted",
-      sheen: "satin-varnish"
-    }
-  },
-  {
-    id: "SAA-SIL-07",
-    name: "Verona Antique Silver & Champagne Leaf",
-    description: "Classical Lombardian moulding with carved wave crest scrolls along the outer profile, subtle antique champagne-leaf cove, and delicate beaded inner edge.",
-    thumbnailUrl: "/mouldings/moulding-7.jpg",
-    cornerDetailUrl: "/mouldings/moulding-7.jpg",
-    category: "antique-gilt",
-    isWorkshopSample: true,
-    profileWidth: 2.85,
-    depth: 1.9,
-    finish: "Hand-Applied Antique Silver Leaf with Warm Champagne Patina",
-    material: "Solid Hardwood with Carved Crest & Beadwork",
-    style: "Lombardian Classical Silver",
-    basePricePerFoot: 46,
-    colorHex: "#968d7e",
-    innerBevelHex: "#bdb6a8",
-    outerBevelHex: "#4f4a42",
-    goldTone: false,
-    textureDetails: {
-      reliefHeight: 0.7,
-      filigreeStyle: "Lombardian Crest & Beaded Astragal",
-      carvingPattern: "baroque",
-      sheen: "aged-patina"
-    }
-  },
-  {
     id: "SAA-BGD-08",
     name: "Brushed Modern Gallery Gold",
     description: "Sleek contemporary flat-face gallery moulding with satin brushed gold anodized finish and crisp 90-degree outer return.",
@@ -867,7 +692,32 @@ var MAT_OPTIONS = [
 ];
 
 // src/utils/pricing.ts
-function calculateFramePrice(frame, width, height, unit, mat) {
+var GST_RATE = 0.18;
+var inrFormatter = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0
+});
+var inrFormatterWithPaise = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+function formatINR(amount, showPaise = false) {
+  if (showPaise && amount % 1 !== 0) {
+    return inrFormatterWithPaise.format(amount);
+  }
+  return inrFormatter.format(Math.round(amount));
+}
+function getMouldingFootRateINR(frame) {
+  if (frame.pricePerFootINR && frame.pricePerFootINR > 0) {
+    return frame.pricePerFootINR;
+  }
+  const rate = Math.round((frame.basePricePerFoot || 40) * 8.75 / 10) * 10;
+  return Math.max(250, rate);
+}
+function calculateFramePrice(frame, width, height, unit, mat, _currency = "INR") {
   const widthInches = unit === "cm" ? width / 2.54 : width;
   const heightInches = unit === "cm" ? height / 2.54 : height;
   const unitedInches = Math.round((widthInches + heightInches) * 10) / 10;
@@ -875,17 +725,30 @@ function calculateFramePrice(frame, width, height, unit, mat) {
   const miterWasteInches = frame.profileWidth * 8;
   const totalLinearInches = perimeterInches + miterWasteInches;
   const linearFeet = Math.max(2, Math.round(totalLinearInches / 12 * 10) / 10);
-  const moldingCost = Math.round(linearFeet * frame.basePricePerFoot);
-  const matCost = mat.id === "mat-none" ? 0 : Math.round(18 + unitedInches * 0.45);
-  const glassAndAssemblyCost = Math.round(25 + unitedInches * 0.65);
-  const totalPrice = moldingCost + matCost + glassAndAssemblyCost;
+  const footRateINR = getMouldingFootRateINR(frame);
+  const moldingCost = Math.round(linearFeet * footRateINR);
+  const matCost = mat.id === "mat-none" ? 0 : Math.round(260 + unitedInches * 14);
+  const glassAndAssemblyCost = Math.round(380 + unitedInches * 22);
+  const basePrice = moldingCost + matCost + glassAndAssemblyCost;
+  const gstAmount = Math.round(basePrice * GST_RATE);
+  const totalPrice = basePrice + gstAmount;
   return {
     unitedInches,
     linearFeet,
     moldingCost,
     matCost,
     glassAndAssemblyCost,
-    totalPrice
+    basePrice,
+    subtotal: basePrice,
+    gstAmount,
+    totalPrice,
+    currency: "INR",
+    formattedBase: formatINR(basePrice),
+    formattedGst: formatINR(gstAmount),
+    formattedTotal: formatINR(totalPrice),
+    formattedMolding: formatINR(moldingCost),
+    formattedMat: formatINR(matCost),
+    formattedGlass: formatINR(glassAndAssemblyCost)
   };
 }
 function getAspectRatioLabel(w, h) {
@@ -976,6 +839,23 @@ function getFrameMaterialProfile(frame) {
       description: "Wire-brushed European ash with contrasting white ceruse lime wash open grain fissures"
     };
   }
+  if (id === "SAA-MHG-23" || name.includes("mahogany")) {
+    return {
+      type: "burl-walnut",
+      metalness: 0.55,
+      roughness: 0.38,
+      bumpScale: 0.09,
+      baseColor: frame.colorHex || "#421a14",
+      highlightColor: frame.innerBevelHex || "#cca249",
+      shadowColor: frame.outerBevelHex || "#210906",
+      patinaColor: "#150604",
+      boleColor: "#3d120a",
+      hasBeadedFillet: true,
+      hasCrossHatching: false,
+      grainOrientation: "horizontal",
+      description: "Lustrous ribbon Honduran mahogany with gilded egg-and-dart carving & warm amber varnish"
+    };
+  }
   if (id === "SAA-BOL-06" || pattern === "fluted" || name.includes("walnut") || name.includes("burl")) {
     return {
       type: "burl-walnut",
@@ -1064,6 +944,9 @@ function getFrameMaterialProfile(frame) {
 
 // src/utils/mouldingReconstruction.ts
 var RECONSTRUCTED_MOULDING_REGISTRY = {
+  // ==========================================
+  // REAL WORKSHOP CORNER CHEVRONS (1 to 7)
+  // ==========================================
   // 1. Florentine Acanthus Baroque Gilt (SAA-FLR-01)
   "SAA-FLR-01": {
     frameId: "SAA-FLR-01",
@@ -1078,28 +961,17 @@ var RECONSTRUCTED_MOULDING_REGISTRY = {
       armEndInner: [0.22, 0.705],
       apexInner: [0.455, 0.47]
     },
-    // Cross-section profile: outer bead -> scoop -> carved acanthus frieze -> beaded fillet -> sightline
     profileCurve: [
       [0, 0.9],
-      // Outer bead top crest
       [0.08, 0.98],
-      // Outer lip peak
       [0.15, 0.78],
-      // Cove hollow transition
       [0.22, 0.65],
-      // Main frieze trough
       [0.38, 0.82],
-      // Acanthus lower relief
       [0.55, 0.95],
-      // Acanthus crest relief (primary highlight)
       [0.72, 0.7],
-      // Fillet step-down trough
       [0.82, 0.88],
-      // Beaded pearl crest
       [0.92, 0.6],
-      // Inner cove slope
       [1, 0.55]
-      // Sightline rabbet edge
     ],
     pbr: {
       baseColor: "#c99738",
@@ -1185,6 +1057,369 @@ var RECONSTRUCTED_MOULDING_REGISTRY = {
       hasOrnamentalRelief: false,
       patternPeriodPixels: 64
     }
+  },
+  // 4. Atelier Cerused Driftwood Ash (SAA-CRU-04)
+  "SAA-CRU-04": {
+    frameId: "SAA-CRU-04",
+    sourcePhotoUrl: "/mouldings/moulding-4.jpg",
+    profileWidth: 2.25,
+    depth: 1.55,
+    rabbetDepth: 0.85,
+    rabbetWidth: 0.35,
+    segmentationQuad: {
+      apexOuter: [0.475, 0.33],
+      armEndOuter: [0.155, 0.62],
+      armEndInner: [0.315, 0.605],
+      apexInner: [0.485, 0.49]
+    },
+    profileCurve: [
+      [0, 0.9],
+      [0.2, 0.94],
+      [0.75, 0.9],
+      [0.92, 0.8],
+      [1, 0.5]
+    ],
+    pbr: {
+      baseColor: "#c2ab8a",
+      metalness: 0.06,
+      roughness: 0.72,
+      bumpScale: 0.08,
+      normalStrength: 1.1
+    },
+    metadata: {
+      reconstructedAt: "2026-11-11T23:45:00Z",
+      algorithm: "Photometric Homography & Open-Grain Ceruse Masking",
+      hasOrnamentalRelief: false,
+      patternPeriodPixels: 52
+    }
+  },
+  // 5. Imperial Gilded Acanthus (SAA-IMP-05)
+  "SAA-IMP-05": {
+    frameId: "SAA-IMP-05",
+    sourcePhotoUrl: "/mouldings/moulding-5.jpg",
+    profileWidth: 3.5,
+    depth: 2.25,
+    rabbetDepth: 1.2,
+    rabbetWidth: 0.375,
+    segmentationQuad: {
+      apexOuter: [0.505, 0.33],
+      armEndOuter: [0.085, 0.65],
+      armEndInner: [0.265, 0.655],
+      apexInner: [0.51, 0.48]
+    },
+    profileCurve: [
+      [0, 0.92],
+      [0.15, 0.97],
+      [0.35, 0.8],
+      [0.6, 0.96],
+      [0.85, 0.85],
+      [1, 0.55]
+    ],
+    pbr: {
+      baseColor: "#cca249",
+      metalness: 0.88,
+      roughness: 0.3,
+      bumpScale: 0.11,
+      normalStrength: 1.7
+    },
+    metadata: {
+      reconstructedAt: "2026-11-11T23:45:00Z",
+      algorithm: "Photometric Homography & High-Relief Rococo Synthesis",
+      hasOrnamentalRelief: true,
+      patternPeriodPixels: 80
+    }
+  },
+  // 6. Tuscan Walnut Burl (SAA-TUS-06)
+  "SAA-TUS-06": {
+    frameId: "SAA-TUS-06",
+    sourcePhotoUrl: "/mouldings/moulding-6.jpg",
+    profileWidth: 2.75,
+    depth: 1.75,
+    rabbetDepth: 0.95,
+    rabbetWidth: 0.35,
+    segmentationQuad: {
+      apexOuter: [0.48, 0.32],
+      armEndOuter: [0.18, 0.59],
+      armEndInner: [0.33, 0.58],
+      apexInner: [0.485, 0.465]
+    },
+    profileCurve: [
+      [0, 0.88],
+      [0.25, 0.92],
+      [0.65, 0.86],
+      [0.9, 0.78],
+      [1, 0.52]
+    ],
+    pbr: {
+      baseColor: "#3d2516",
+      metalness: 0.15,
+      roughness: 0.55,
+      bumpScale: 0.05,
+      normalStrength: 0.9
+    },
+    metadata: {
+      reconstructedAt: "2026-11-11T23:45:00Z",
+      algorithm: "Photometric Homography & Figured Walnut Burl Synthesis",
+      hasOrnamentalRelief: false,
+      patternPeriodPixels: 58
+    }
+  },
+  // 7. Castilian Oxidized Silver Leaf (SAA-SIL-07)
+  "SAA-SIL-07": {
+    frameId: "SAA-SIL-07",
+    sourcePhotoUrl: "/mouldings/moulding-7.jpg",
+    profileWidth: 2.65,
+    depth: 1.7,
+    rabbetDepth: 0.92,
+    rabbetWidth: 0.35,
+    segmentationQuad: {
+      apexOuter: [0.505, 0.35],
+      armEndOuter: [0.055, 0.665],
+      armEndInner: [0.235, 0.67],
+      apexInner: [0.505, 0.49]
+    },
+    profileCurve: [
+      [0, 0.9],
+      [0.12, 0.96],
+      [0.35, 0.82],
+      [0.65, 0.94],
+      [0.85, 0.8],
+      [1, 0.54]
+    ],
+    pbr: {
+      baseColor: "#b8b5b0",
+      metalness: 0.88,
+      roughness: 0.32,
+      bumpScale: 0.07,
+      normalStrength: 1.3
+    },
+    metadata: {
+      reconstructedAt: "2026-11-11T23:45:00Z",
+      algorithm: "Photometric Homography & Silver Leaf Oxidation Mapping",
+      hasOrnamentalRelief: true,
+      patternPeriodPixels: 64
+    }
+  },
+  // ==========================================
+  // REAL STUDIO RECTANGULAR FRAMES (8 to 24)
+  // ==========================================
+  // 23. Rich Mahogany with Gold Egg-and-Dart (SAA-MHG-23)
+  "SAA-MHG-23": {
+    frameId: "SAA-MHG-23",
+    sourcePhotoUrl: "/mouldings/ornate-mahogany-and-gold-frame.png",
+    profileWidth: 3,
+    depth: 1.9,
+    rabbetDepth: 1.05,
+    rabbetWidth: 0.35,
+    isRectangularFrame: true,
+    rectCrop: [0.18, 0.035, 0.82, 0.202],
+    profileCurve: [
+      [0, 0.88],
+      [0.15, 0.95],
+      [0.35, 0.82],
+      [0.65, 0.98],
+      [0.85, 0.78],
+      [1, 0.65]
+    ],
+    pbr: {
+      baseColor: "#421a14",
+      metalness: 0.55,
+      roughness: 0.38,
+      bumpScale: 0.1,
+      normalStrength: 1.7
+    },
+    metadata: {
+      reconstructedAt: "2026-11-13T23:45:00Z",
+      algorithm: "Rectilinear Studio Extraction & High-Relief Normal Synthesis",
+      hasOrnamentalRelief: true,
+      patternPeriodPixels: 56
+    }
+  },
+  // 8. Brushed Champagne Gold (SAA-BGD-08)
+  "SAA-BGD-08": {
+    frameId: "SAA-BGD-08",
+    sourcePhotoUrl: "/mouldings/brushed-gold-picture-frame-on-white.png",
+    profileWidth: 2.25,
+    depth: 1.4,
+    rabbetDepth: 0.75,
+    rabbetWidth: 0.3,
+    isRectangularFrame: true,
+    rectCrop: [0.2, 0.04, 0.8, 0.171],
+    profileCurve: [
+      [0, 0.92],
+      [0.1, 0.96],
+      [0.9, 0.96],
+      [1, 0.5]
+    ],
+    pbr: {
+      baseColor: "#d6b265",
+      metalness: 0.85,
+      roughness: 0.32,
+      bumpScale: 0.03,
+      normalStrength: 0.9
+    },
+    metadata: {
+      reconstructedAt: "2026-11-13T23:45:00Z",
+      algorithm: "Linear Anodized Brush Texture Synthesis",
+      hasOrnamentalRelief: false,
+      patternPeriodPixels: 40
+    }
+  },
+  // 10. Archival Matte Black & Gilded Bead (SAA-BLK-10)
+  "SAA-BLK-10": {
+    frameId: "SAA-BLK-10",
+    sourcePhotoUrl: "/mouldings/elegant-black-and-gold-empty-frame.png",
+    profileWidth: 2.75,
+    depth: 1.75,
+    rabbetDepth: 0.95,
+    rabbetWidth: 0.35,
+    isRectangularFrame: true,
+    rectCrop: [0.2, 0.035, 0.8, 0.128],
+    profileCurve: [
+      [0, 0.9],
+      [0.25, 0.94],
+      [0.75, 0.9],
+      [0.9, 0.98],
+      [1, 0.55]
+    ],
+    pbr: {
+      baseColor: "#1a1a1a",
+      metalness: 0.45,
+      roughness: 0.4,
+      bumpScale: 0.06,
+      normalStrength: 1.3
+    },
+    metadata: {
+      reconstructedAt: "2026-11-13T23:45:00Z",
+      algorithm: "Dual-Finish Matte & Gilded Bead Extraction",
+      hasOrnamentalRelief: true,
+      patternPeriodPixels: 48
+    }
+  },
+  // 11. Deep Ebony Hardwood & Gold Inset (SAA-WGD-11)
+  "SAA-WGD-11": {
+    frameId: "SAA-WGD-11",
+    sourcePhotoUrl: "/mouldings/elegant-dark-wood-frame-with-gold-trim.png",
+    profileWidth: 2.85,
+    depth: 1.8,
+    rabbetDepth: 1,
+    rabbetWidth: 0.35,
+    isRectangularFrame: true,
+    rectCrop: [0.2, 0.035, 0.8, 0.145],
+    profileCurve: [
+      [0, 0.9],
+      [0.2, 0.95],
+      [0.7, 0.92],
+      [0.9, 0.98],
+      [1, 0.58]
+    ],
+    pbr: {
+      baseColor: "#2b1b17",
+      metalness: 0.4,
+      roughness: 0.42,
+      bumpScale: 0.07,
+      normalStrength: 1.4
+    },
+    metadata: {
+      reconstructedAt: "2026-11-13T23:45:00Z",
+      algorithm: "Hardwood Grain & Gold Leaf Inlay Extraction",
+      hasOrnamentalRelief: true,
+      patternPeriodPixels: 52
+    }
+  },
+  // 19. Ornate Burgundy Bole & Vintage Gold (SAA-BVG-19)
+  "SAA-BVG-19": {
+    frameId: "SAA-BVG-19",
+    sourcePhotoUrl: "/mouldings/ornate-burgundy-and-gold-vintage-frame.png",
+    profileWidth: 3.25,
+    depth: 2.15,
+    rabbetDepth: 1.15,
+    rabbetWidth: 0.375,
+    isRectangularFrame: true,
+    rectCrop: [0.18, 0.026, 0.82, 0.209],
+    profileCurve: [
+      [0, 0.92],
+      [0.15, 0.98],
+      [0.4, 0.82],
+      [0.65, 0.96],
+      [0.85, 0.88],
+      [1, 0.6]
+    ],
+    pbr: {
+      baseColor: "#581822",
+      metalness: 0.6,
+      roughness: 0.35,
+      bumpScale: 0.11,
+      normalStrength: 1.7
+    },
+    metadata: {
+      reconstructedAt: "2026-11-13T23:45:00Z",
+      algorithm: "Enamel Bole & Relief Gilt Extraction",
+      hasOrnamentalRelief: true,
+      patternPeriodPixels: 64
+    }
+  },
+  // 22. Ornate Golden Renaissance Acanthus (SAA-GBF-22)
+  "SAA-GBF-22": {
+    frameId: "SAA-GBF-22",
+    sourcePhotoUrl: "/mouldings/ornate-golden-baroque-picture-frame.png",
+    profileWidth: 3.6,
+    depth: 2.35,
+    rabbetDepth: 1.25,
+    rabbetWidth: 0.4,
+    isRectangularFrame: true,
+    rectCrop: [0.18, 0.035, 0.82, 0.215],
+    profileCurve: [
+      [0, 0.94],
+      [0.15, 0.98],
+      [0.35, 0.78],
+      [0.6, 0.98],
+      [0.85, 0.88],
+      [1, 0.62]
+    ],
+    pbr: {
+      baseColor: "#d6a337",
+      metalness: 0.92,
+      roughness: 0.26,
+      bumpScale: 0.13,
+      normalStrength: 1.85
+    },
+    metadata: {
+      reconstructedAt: "2026-11-13T23:45:00Z",
+      algorithm: "Renaissance Acanthus Undercut Normal Synthesis",
+      hasOrnamentalRelief: true,
+      patternPeriodPixels: 76
+    }
+  },
+  // 24. Rustic Whitewashed Nordic Timber (SAA-RWW-24)
+  "SAA-RWW-24": {
+    frameId: "SAA-RWW-24",
+    sourcePhotoUrl: "/mouldings/rustic-whitewashed-wooden-picture-frame.png",
+    profileWidth: 2.5,
+    depth: 1.5,
+    rabbetDepth: 0.8,
+    rabbetWidth: 0.35,
+    isRectangularFrame: true,
+    rectCrop: [0.2, 0.038, 0.8, 0.165],
+    profileCurve: [
+      [0, 0.9],
+      [0.15, 0.94],
+      [0.85, 0.92],
+      [1, 0.5]
+    ],
+    pbr: {
+      baseColor: "#dfdcd5",
+      metalness: 0.03,
+      roughness: 0.78,
+      bumpScale: 0.07,
+      normalStrength: 1.2
+    },
+    metadata: {
+      reconstructedAt: "2026-11-13T23:45:00Z",
+      algorithm: "Wire-Brushed Open Fissure Extraction",
+      hasOrnamentalRelief: false,
+      patternPeriodPixels: 50
+    }
   }
 };
 
@@ -1193,51 +1428,65 @@ function parseRoute(pathname) {
   if (typeof pathname !== "string") {
     return { route: "home", path: "/" };
   }
-  const clean = pathname.replace(/\/+$/, "") || "/";
+  const [rawPath, rawSearch] = pathname.split("?");
+  const clean = rawPath.replace(/\/+$/, "") || "/";
+  const search = rawSearch ? `?${rawSearch}` : typeof window !== "undefined" ? window.location.search : "";
+  const queryParams = {};
+  if (search) {
+    try {
+      const sp = new URLSearchParams(search);
+      sp.forEach((val, key) => {
+        queryParams[key] = val;
+      });
+    } catch {
+    }
+  }
   if (clean === "/" || clean === "") {
-    return { route: "home", path: "/" };
+    return { route: "home", path: "/", search, queryParams };
   }
   if (clean === "/catalog" || clean.startsWith("/catalog/")) {
     const parts = clean.split("/");
-    return { route: "catalog", path: "/catalog", frameId: parts[2] };
+    return { route: "catalog", path: "/catalog", frameId: parts[2], search, queryParams };
   }
   if (clean === "/product" || clean.startsWith("/product/")) {
     const parts = clean.split("/");
-    return { route: "product", path: clean, frameId: parts[2] };
+    return { route: "product", path: clean, frameId: parts[2], search, queryParams };
   }
   if (clean === "/configurator" || clean === "/configure" || clean.startsWith("/configurator/") || clean.startsWith("/configure/")) {
     const parts = clean.split("/");
-    return { route: "configure", path: clean, frameId: parts[2] };
+    return { route: "configure", path: clean, frameId: parts[2], search, queryParams };
   }
   if (clean === "/studio" || clean === "/3d-studio" || clean.startsWith("/studio/")) {
     const parts = clean.split("/");
-    return { route: "studio", path: "/studio", frameId: parts[2] };
+    return { route: "studio", path: "/studio", frameId: parts[2], search, queryParams };
   }
   if (clean === "/review" || clean === "/quote" || clean === "/dossier") {
-    return { route: "review", path: "/review" };
+    return { route: "review", path: "/review", search, queryParams };
   }
-  return { route: "home", path: "/" };
-}
-
-// src/utils/productMapping.ts
-var STITCH_SHOWCASE_MAPPINGS = {
-  "SA-BG-402": "SAA-FLR-01",
-  "SA-AG-118": "SAA-VEN-02",
-  "SA-MG-204": "SAA-TUS-06",
-  "SA-CB-309": "SAA-BVG-19"
-};
-function resolveProfile(idOrAlias, frames) {
-  if (!idOrAlias) return undefined;
-  const cleanId = idOrAlias.trim();
-  if (!cleanId) return undefined;
-  const directMatch = frames.find((f) => f.id.toLowerCase() === cleanId.toLowerCase());
-  if (directMatch) return directMatch;
-  const aliasTargetId = STITCH_SHOWCASE_MAPPINGS[cleanId.toUpperCase()];
-  if (aliasTargetId) {
-    const aliasMatch = frames.find((f) => f.id.toLowerCase() === aliasTargetId.toLowerCase());
-    if (aliasMatch) return aliasMatch;
+  if (clean === "/quotations" || clean === "/saved-quotations") {
+    return { route: "quotations", path: "/quotations", search, queryParams };
   }
-  return frames.find((f) => f.name.toLowerCase() === cleanId.toLowerCase());
+  if (clean === "/quotation" || clean.startsWith("/quotation/")) {
+    const parts = clean.split("/").filter(Boolean);
+    let quotationId;
+    if (parts[1]) {
+      try {
+        quotationId = decodeURIComponent(parts[1]);
+      } catch {
+        quotationId = parts[1];
+      }
+    }
+    const isPrintMode = parts[2] === "print";
+    return {
+      route: "quotation",
+      path: clean,
+      quotationId,
+      isPrintMode,
+      search,
+      queryParams
+    };
+  }
+  return { route: "home", path: "/", search, queryParams };
 }
 
 // node_modules/three/build/three.module.js
@@ -22027,29 +22276,30 @@ var fW = vFrame.profileWidth * scale;
 var geomPass = totalWidthInches === 28 && totalHeightInches === 32 && fW > 0 && fW < vbW / 2;
 recordTest("2D Geometry", "45\xB0 miter & sightline geometry validity", geomPass, `Outer: ${totalWidthInches}" x ${totalHeightInches}", vb: ${vbW.toFixed(1)}x${vbH.toFixed(1)}, profile width: ${fW.toFixed(1)}px`);
 console.log("\n--- SUITE 3: DYNAMIC REALISTIC MATERIAL ENGINE ---");
-var flrFrame = FRAME_SAMPLES.find((f) => f.id === "SAA-FLR-01");
-var flrProf = getFrameMaterialProfile(flrFrame);
-var flrPass = flrProf.type === "carved-gold" && flrProf.metalness >= 0.88 && flrProf.hasBeadedFillet && flrProf.hasCrossHatching;
-recordTest("Realistic Material Engine", "Profile A (Florentine Acanthus SAA-FLR-01) classification", flrPass, `Type: ${flrProf.type}, metalness: ${flrProf.metalness}, beaded: ${flrProf.hasBeadedFillet}, hatching: ${flrProf.hasCrossHatching}`);
-var venFrame = FRAME_SAMPLES.find((f) => f.id === "SAA-VEN-02");
-var venProf = getFrameMaterialProfile(venFrame);
-var venPass = venProf.type === "distressed-gilt" && venProf.metalness >= 0.8 && venProf.boleColor === "#7a2b1b";
-recordTest("Realistic Material Engine", "Profile B (Venetian Distressed SAA-VEN-02) classification", venPass, `Type: ${venProf.type}, metalness: ${venProf.metalness}, bole: ${venProf.boleColor}`);
-var oakFrame = FRAME_SAMPLES.find((f) => f.id === "SAA-OAK-03");
+var agbFrame = FRAME_SAMPLES.find((f) => f.id === "SAA-AGB-15");
+var agbProf = getFrameMaterialProfile(agbFrame);
+var agbPass = agbProf.type === "carved-gold" && agbProf.metalness >= 0.88 && agbProf.hasBeadedFillet && agbProf.hasCrossHatching;
+recordTest("Realistic Material Engine", "Profile A (Antique Gold Baroque SAA-AGB-15) classification", agbPass, `Type: ${agbProf.type}, metalness: ${agbProf.metalness}, beaded: ${agbProf.hasBeadedFillet}, hatching: ${agbProf.hasCrossHatching}`);
+var bvgFrame = FRAME_SAMPLES.find((f) => f.id === "SAA-BVG-19");
+var bvgProf = getFrameMaterialProfile(bvgFrame);
+var bvgPass = bvgProf.type === "distressed-gilt" && bvgProf.metalness >= 0.8 && bvgProf.boleColor === "#7a2b1b";
+recordTest("Realistic Material Engine", "Profile B (Burgundy Bole & Gold SAA-BVG-19) classification", bvgPass, `Type: ${bvgProf.type}, metalness: ${bvgProf.metalness}, bole: ${bvgProf.boleColor}`);
+var oakFrame = FRAME_SAMPLES.find((f) => f.id === "SAA-EWG-12");
 var oakProf = getFrameMaterialProfile(oakFrame);
 var oakPass = oakProf.type === "natural-wood" && oakProf.metalness <= 0.05 && oakProf.roughness >= 0.65 && oakProf.grainOrientation === "horizontal";
-recordTest("Realistic Material Engine", "Profile C (Scandinavian Oak SAA-OAK-03) classification", oakPass, `Type: ${oakProf.type}, metalness: ${oakProf.metalness}, roughness: ${oakProf.roughness}, grain: ${oakProf.grainOrientation}`);
-var diffPass = flrProf.type !== venProf.type && venProf.type !== oakProf.type && flrProf.metalness !== oakProf.metalness;
-recordTest("Realistic Material Engine", "Visual differentiation across test profiles (A, B, C)", diffPass, `Distinct materials: ${flrProf.type} vs ${venProf.type} vs ${oakProf.type}`);
+recordTest("Realistic Material Engine", "Profile C (Woodgrain & Gold SAA-EWG-12) classification", oakPass, `Type: ${oakProf.type}, metalness: ${oakProf.metalness}, roughness: ${oakProf.roughness}, grain: ${oakProf.grainOrientation}`);
+var diffPass = agbProf.type !== bvgProf.type && bvgProf.type !== oakProf.type && agbProf.metalness !== oakProf.metalness;
+recordTest("Realistic Material Engine", "Visual differentiation across test profiles (A, B, C)", diffPass, `Distinct materials: ${agbProf.type} vs ${bvgProf.type} vs ${oakProf.type}`);
 console.log("\n--- SUITE 4: 3D THREE.JS 45\xB0 MITER EXTRUSION ---");
 try {
   const scene = new Scene();
   const frameGroup = new Group();
   scene.add(frameGroup);
+  const agbRef = FRAME_SAMPLES.find((f) => f.id === "SAA-AGB-15");
   const baseHeight = 8.5;
   const baseWidth = baseHeight * (16 / 20);
-  const profileW = Math.max(0.4, flrFrame.profileWidth / 12 * 2.2);
-  const frameDepth = Math.max(0.35, flrFrame.depth / 12 * 2.4);
+  const profileW = Math.max(0.4, agbRef.profileWidth / 12 * 2.2);
+  const frameDepth = Math.max(0.35, agbRef.depth / 12 * 2.4);
   const totalW = baseWidth + profileW * 2;
   const totalH = baseHeight + profileW * 2;
   const extrudeSettings = {
@@ -22098,8 +22348,10 @@ try {
   recordTest("Three.js 3D Engine", "Extruded 45\xB0 miter trapezoid frame assembly", false, e.message);
 }
 console.log("\n--- SUITE 5: CATALOG INTEGRITY ---");
-var framesValid = FRAME_SAMPLES.length >= 15 && FRAME_SAMPLES.every((f) => f.basePricePerFoot > 0 && f.profileWidth > 0);
-recordTest("Catalog Integrity", "All profiles loaded (incl. 7 real workshop mouldings) with valid pricing & profile dimensions", framesValid, `${FRAME_SAMPLES.length} profiles validated`);
+var retiredIds = ["SAA-FLR-01", "SAA-VEN-02", "SAA-OAK-03", "SAA-CRU-04", "SAA-IMP-05", "SAA-TUS-06", "SAA-SIL-07"];
+var retiredAbsent = retiredIds.every((id) => !FRAME_SAMPLES.some((f) => f.id === id));
+var framesValid = FRAME_SAMPLES.length === 25 && retiredAbsent && FRAME_SAMPLES.every((f) => f.basePricePerFoot > 0 && f.profileWidth > 0);
+recordTest("Catalog Integrity", "All 25 active profiles loaded (7 retired chevrons excluded) with valid pricing & profile dimensions", framesValid, `${FRAME_SAMPLES.length} profiles validated, retired absent: ${retiredAbsent}`);
 var matsValid = MAT_OPTIONS.length === 4;
 recordTest("Catalog Integrity", "All 4 archival mat options present", matsValid, `${MAT_OPTIONS.length} mat options`);
 var artValid = ARTWORK_OPTIONS.length === 4;
@@ -22108,10 +22360,10 @@ console.log("\n--- SUITE 6: ROUTING LOGIC CONTRACT ---");
 var rHome = parseRoute("/");
 var rCatalog = parseRoute("/catalog");
 var rConfig = parseRoute("/configurator");
-var rConfigParam = parseRoute("/configurator/SAA-FLR-01");
+var rConfigParam = parseRoute("/configurator/SAA-AGB-15");
 var rStudio = parseRoute("/studio");
 var rReview = parseRoute("/review");
-var routePass = rHome.route === "home" && rCatalog.route === "catalog" && rConfig.route === "configure" && rConfigParam.route === "configure" && rConfigParam.frameId === "SAA-FLR-01" && rStudio.route === "studio" && rReview.route === "review";
+var routePass = rHome.route === "home" && rCatalog.route === "catalog" && rConfig.route === "configure" && rConfigParam.route === "configure" && rConfigParam.frameId === "SAA-AGB-15" && rStudio.route === "studio" && rReview.route === "review";
 recordTest(
   "Routing Logic",
   "URL resolution contracts for all dedicated routes (/, /catalog, /configurator, /studio, /review)",
@@ -22119,287 +22371,12 @@ recordTest(
   `Home: ${rHome.route}, Catalog: ${rCatalog.route}, Configurator: ${rConfig.route} (${rConfigParam.frameId}), Studio: ${rStudio.route}, Review: ${rReview.route}`
 );
 console.log("\n--- SUITE 7: PHOTOMETRIC MOULDING RECONSTRUCTION ASSETS ---");
-var recFlr = RECONSTRUCTED_MOULDING_REGISTRY["SAA-FLR-01"];
-var recFlrPass = !!recFlr && recFlr.profileCurve.length >= 8 && recFlr.pbr.metalness === 0.9 && recFlr.segmentationQuad.apexOuter[0] > 0;
-recordTest("Moulding Reconstruction", "Florentine Baroque (SAA-FLR-01) photometric profile curve & quad calibration", recFlrPass, `Profile curve points: ${recFlr.profileCurve.length}, normal strength: ${recFlr.pbr.normalStrength}, period: ${recFlr.metadata.patternPeriodPixels}px`);
-var recVen = RECONSTRUCTED_MOULDING_REGISTRY["SAA-VEN-02"];
-var recVenPass = !!recVen && recVen.profileCurve.length >= 5 && recVen.pbr.metalness === 0.84;
-recordTest("Moulding Reconstruction", "Venetian Distressed (SAA-VEN-02) photometric profile & bole calibration", recVenPass, `Profile curve points: ${recVen.profileCurve.length}, metalness: ${recVen.pbr.metalness}`);
-var recOak = RECONSTRUCTED_MOULDING_REGISTRY["SAA-OAK-03"];
-var recOakPass = !!recOak && recOak.profileCurve.length >= 5 && recOak.pbr.metalness === 0.04 && recOak.pbr.roughness >= 0.65;
-recordTest("Moulding Reconstruction", "Scandinavian Oak (SAA-OAK-03) photometric grain profile & PBR calibration", recOakPass, `Profile curve points: ${recOak.profileCurve.length}, roughness: ${recOak.pbr.roughness}`);
-
-console.log("\n--- SUITE 8: PRODUCT DETAIL SHOWCASE & REMEDIATION INTEGRITY ---");
-// 1. All four Stitch alias mappings resolve
-var mBg = resolveProfile("SA-BG-402", FRAME_SAMPLES);
-var mAg = resolveProfile("SA-AG-118", FRAME_SAMPLES);
-var mMg = resolveProfile("SA-MG-204", FRAME_SAMPLES);
-var mCb = resolveProfile("SA-CB-309", FRAME_SAMPLES);
-var aliasAllResolved = mBg?.id === "SAA-FLR-01" && mAg?.id === "SAA-VEN-02" && mMg?.id === "SAA-TUS-06" && mCb?.id === "SAA-BVG-19";
-recordTest(
-  "PDP Remediation",
-  "1. All four Google Stitch aliases resolve to authentic catalogue profiles",
-  aliasAllResolved,
-  `SA-BG-402->${mBg?.id}, SA-AG-118->${mAg?.id}, SA-MG-204->${mMg?.id}, SA-CB-309->${mCb?.id}`
-);
-
-// 2. SA-CB-309 explicitly resolves to SAA-BVG-19 (Ornate Burgundy Bole & Vintage Gold)
-var cbPass = mCb?.id === "SAA-BVG-19" && mCb?.name === "Ornate Burgundy Bole & Vintage Gold";
-recordTest(
-  "PDP Remediation",
-  "2. P0 Fix: SA-CB-309 resolves strictly to SAA-BVG-19 (Burgundy & Vintage Gold)",
-  cbPass,
-  `Resolved SKU: ${mCb?.id}, Title: "${mCb?.name}", Finish: "${mCb?.finish}"`
-);
-
-// 3. Valid original SKU resolution
-var origPass = resolveProfile("SAA-FLR-01", FRAME_SAMPLES)?.id === "SAA-FLR-01" && resolveProfile("SAA-VEN-02", FRAME_SAMPLES)?.id === "SAA-VEN-02";
-recordTest(
-  "PDP Remediation",
-  "3. Valid original workshop SKUs resolve directly with full specifications",
-  origPass,
-  "Verified exact ID match without alias redirection"
-);
-
-// 4. Unknown SKU handling (No silent substitution)
-var unknownResult = resolveProfile("INVALID-SKU-999", FRAME_SAMPLES);
-var unknownPass = unknownResult === undefined;
-recordTest(
-  "PDP Remediation",
-  "4. Unknown/invalid SKU returns undefined to trigger dedicated ProductNotFound state (Zero silent fallback)",
-  unknownPass,
-  `resolveProfile('INVALID-SKU-999') = ${unknownResult}`
-);
-
-// 5. Missing SKU handling (/product has frameId undefined)
-var rProductBare = parseRoute("/product");
-var missingPass = rProductBare.route === "product" && rProductBare.frameId === undefined;
-recordTest(
-  "PDP Remediation",
-  "5. Missing product identifier (/product) yields undefined frameId for catalog redirection",
-  missingPass,
-  `Route: ${rProductBare.route}, FrameId: ${rProductBare.frameId}`
-);
-
-// 6. Direct product route resolution (/product/:id)
-var rProductParam = parseRoute("/product/SAA-FLR-01");
-var pRoutePass = rProductParam.route === "product" && rProductParam.frameId === "SAA-FLR-01";
-recordTest(
-  "PDP Remediation",
-  "6. Dedicated /product/:id route contract correctly parses route and parameter",
-  pRoutePass,
-  `Route: ${rProductParam.route}, FrameId: ${rProductParam.frameId}`
-);
-
-// 7. Inventory copy integrity check
-var fs = require("fs");
-var pdpSource = fs.readFileSync("src/components/ProductDetailPage.tsx", "utf8");
-var inventoryCopyPass = pdpSource.includes("Atelier Crafted — Enquire for Availability") &&
-  !pdpSource.includes("Ready for Mitre Cutting") &&
-  !pdpSource.includes("Batch of 800 ft") &&
-  !pdpSource.includes("Dispatch: 2 Business Days");
-recordTest(
-  "PDP Remediation",
-  "7. Inventory and dispatch claims grounded in bespoke atelier reality (No unsupported live stock)",
-  inventoryCopyPass,
-  "Verified 'Atelier Crafted — Enquire for Availability' active, unsupported stock claims purged"
-);
-
-// 8. Gallery image uniqueness & adaptive perspectives
-var galleryIntegrityPass = !pdpSource.includes("elegant-woodgrain-gold-picture-frame.png") &&
-  pdpSource.includes("galleryImages.length > 1");
-recordTest(
-  "PDP Remediation",
-  "8. Gallery integrity verified: hardcoded generic context removed and adaptive thumbnail rendering enabled",
-  galleryIntegrityPass,
-  "Verified zero hardcoded context frame and adaptive genuine image logic active"
-);
-
-console.log("\n--- SUITE 9: CUSTOM FRAMING STUDIO ACCEPTANCE SUITE ---");
-
-// 1. Studio route resolution contract
-var rStudioBare = parseRoute("/studio");
-var rStudioParam = parseRoute("/studio/SAA-FLR-01");
-var rConfigBare = parseRoute("/configurator");
-var rConfigParam = parseRoute("/configurator/SAA-BVG-19");
-var studioRoutePass = rStudioBare.route === "studio" &&
-  rStudioParam.route === "studio" && rStudioParam.frameId === "SAA-FLR-01" &&
-  rConfigBare.route === "configure" &&
-  rConfigParam.route === "configure" && rConfigParam.frameId === "SAA-BVG-19";
-recordTest(
-  "Custom Framing Studio",
-  "1. Studio and Configurator route contracts resolve correctly with and without SKU parameters",
-  studioRoutePass,
-  `Studio: ${rStudioBare.route}, Param: ${rStudioParam.frameId}, Config: ${rConfigBare.route}, ConfigParam: ${rConfigParam.frameId}`
-);
-
-// 2. All 32 profiles present with authentic geometry and INR rate
-var all32ProfilesPass = FRAME_SAMPLES.length === 32 &&
-  FRAME_SAMPLES.every(function(f) {
-    return f.id && f.name && f.profileWidth > 0 && f.depth > 0 && (f.pricePerFootINR > 0 || f.basePricePerFoot > 0);
-  });
-recordTest(
-  "Custom Framing Studio",
-  "2. All 32 moulding profiles loaded with valid physical profile geometry and INR rates",
-  all32ProfilesPass,
-  `Total profiles: ${FRAME_SAMPLES.length}, all profiles have valid geometry & rates`
-);
-
-// 3. Product Detail handoff preserves exact SKU and authentic specifications
-var bvg19Profile = resolveProfile("SAA-BVG-19", FRAME_SAMPLES);
-var handoffPass = !!bvg19Profile && bvg19Profile.id === "SAA-BVG-19" && bvg19Profile.name === "Ornate Burgundy Bole & Vintage Gold";
-recordTest(
-  "Custom Framing Studio",
-  "3. Product Detail handoff preserves exact SKU and authentic specifications",
-  handoffPass,
-  `Handoff SKU: ${bvg19Profile ? bvg19Profile.id : 'none'}, Title: "${bvg19Profile ? bvg19Profile.name : ''}"`
-);
-
-// 4. Architectural aspect ratio classification accurately computes opening proportions
-var testSquareAspect = getAspectRatioLabel(20, 20);
-var testStandardAspect = getAspectRatioLabel(16, 20);
-var testClassicAspect = getAspectRatioLabel(18, 24);
-var testPanoramicAspect = getAspectRatioLabel(32, 18);
-var aspectPass = testSquareAspect === '1:1 Square' && testStandardAspect === '4:5 Standard Portrait' && testClassicAspect === '3:4 Classic' && testPanoramicAspect === '16:9 Panoramic';
-recordTest(
-  "Custom Framing Studio",
-  "4. Architectural aspect ratio classification accurately computes opening proportions",
-  aspectPass,
-  `Square: ${testSquareAspect}, 16x20: ${testStandardAspect}, 18x24: ${testClassicAspect}, 32x18: ${testPanoramicAspect}`
-);
-
-// 5. Finished outer frame geometry preserves 2 * (FaceWidth + MatReveal) mathematical identity
-var sampleFrame = FRAME_SAMPLES[0]; // SAA-FLR-01, profileWidth = 3.25
-var matWidthTest = 2.5;
-var artW = 16;
-var artH = 20;
-var outerWExpected = artW + 2 * (sampleFrame.profileWidth + matWidthTest); // 16 + 2 * (3.25 + 2.5) = 27.5
-var outerHExpected = artH + 2 * (sampleFrame.profileWidth + matWidthTest); // 20 + 2 * (3.25 + 2.5) = 31.5
-var outerDimsPass = Math.abs(outerWExpected - 27.5) < 0.01 && Math.abs(outerHExpected - 31.5) < 0.01;
-recordTest(
-  "Custom Framing Studio",
-  "5. Finished outer frame geometry preserves 2 * (FaceWidth + MatReveal) mathematical identity",
-  outerDimsPass,
-  `Opening: 16x20", Finished Outer: ${outerWExpected.toFixed(2)}x${outerHExpected.toFixed(2)}" (Profile: ${sampleFrame.profileWidth}", Mat: ${matWidthTest}")`
-);
-
-// 6. Conservation Glazing options apply verified pricing deltas and statutory 18% GST (HSN 4414)
-var baseCalc = calculateFramePrice(sampleFrame, 16, 20, 'in', MAT_OPTIONS[0], 'INR');
-var optiumGlazeDelta = 1800;
-var baseSub = baseCalc.subtotal || baseCalc.totalPrice;
-var optiumSub = baseSub + optiumGlazeDelta;
-var optiumGst = Math.round(optiumSub * 0.18);
-var optiumTotal = optiumSub + optiumGst;
-var glazingMathPass = optiumTotal === (optiumSub + Math.round(optiumSub * 0.18)) && optiumTotal > baseSub;
-recordTest(
-  "Custom Framing Studio",
-  "6. Conservation Glazing options apply verified pricing deltas and statutory 18% GST (HSN 4414)",
-  glazingMathPass,
-  `Base Subtotal: ₹${baseSub}, Optium (+₹1800): ₹${optiumSub}, GST: ₹${optiumGst}, Total: ₹${optiumTotal}`
-);
-
-// 7. Studio component architecture & 6-step workflow verification
-var studioSource = fs.readFileSync("src/components/CustomFramingStudio.tsx", "utf8");
-var studioStructurePass = studioSource.includes("Dossier Studio #BA-842") &&
-  studioSource.includes("Frame Dimensions &amp; Cavity") &&
-  studioSource.includes("Moulding Profile") &&
-  studioSource.includes("Archival Matboard (8-Ply Cotton)") &&
-  studioSource.includes("Conservation Glazing") &&
-  studioSource.includes("Hanging &amp; Wall Anchor Hardware") &&
-  studioSource.includes("Atelier Quotation Breakdown") &&
-  studioSource.includes("HSN 4414 (18% GST)") &&
-  studioSource.includes("ThreeFrameViewer") &&
-  studioSource.includes("FrameCanvas2D");
-recordTest(
-  "Custom Framing Studio",
-  "7. CustomFramingStudio component implements complete 6-step atelier workflow & dual renderers",
-  studioStructurePass,
-  "Verified 6-step workflow, dual 2D/3D renderers, HSN 4414 GST breakdown, and dossier badges"
-);
-
-// 8. App routing integration contract
-var appSource = fs.readFileSync("src/App.tsx", "utf8");
-var appIntegrationPass = appSource.includes("<CustomFramingStudio") &&
-  appSource.includes("routeInfo.route === 'configure'") &&
-  appSource.includes("routeInfo.route === 'studio'") &&
-  appSource.includes("routeInfo.route === 'review'");
-recordTest(
-  "Custom Framing Studio",
-  "8. App.tsx cleanly routes /configurator, /studio, and /review to CustomFramingStudio with zero state duplication",
-  appIntegrationPass,
-  "Verified unified CustomFramingStudio routing across all studio routes"
-);
-
-// --- SUITE 10: PHASE 5 QUOTATION DOSSIER & CONTRACT INTEGRITY ---
-// 1. Quotation Domain Model & Factory Existence
-var quotationTypesSource = fs.readFileSync("src/types/quotation.ts", "utf8");
-var quotationModelPass = quotationTypesSource.includes("export interface QuotationSnapshot") &&
-  quotationTypesSource.includes("export interface QuotationFrameSnapshot") &&
-  quotationTypesSource.includes("export interface QuotationPricingSnapshot") &&
-  quotationTypesSource.includes("export function calculateQuotationPricing") &&
-  quotationTypesSource.includes("export function createQuotationSnapshot");
-recordTest(
-  "Quotation Dossier System",
-  "1. Quotation domain model defines comprehensive types and immutable snapshot factory",
-  quotationModelPass,
-  "Verified QuotationSnapshot, QuotationFrameSnapshot, QuotationPricingSnapshot and factories"
-);
-
-// 2. Storage Persistence Layer
-var quotationStorageSource = fs.readFileSync("src/utils/quotationStorage.ts", "utf8");
-var storagePass = quotationStorageSource.includes("export function getSavedQuotations") &&
-  quotationStorageSource.includes("export function getQuotationById") &&
-  quotationStorageSource.includes("export function saveQuotation") &&
-  quotationStorageSource.includes("export function deleteQuotation") &&
-  quotationStorageSource.includes("sanskruti_quotations_v1");
-recordTest(
-  "Quotation Dossier System",
-  "2. Quotation storage module implements safe localStorage persistence with quota safeguards",
-  storagePass,
-  "Verified getSavedQuotations, getQuotationById, saveQuotation, deleteQuotation, and quota safeguards"
-);
-
-// 3. State Lift & Integration Contract in App.tsx
-var appStateLiftPass = appSource.includes("selectedGlazing") &&
-  appSource.includes("setSelectedGlazing") &&
-  appSource.includes("selectedMounting") &&
-  appSource.includes("setSelectedMounting") &&
-  appSource.includes("glazingId: selectedGlazing.id") &&
-  appSource.includes("selectedGlazing={selectedGlazing}") &&
-  appSource.includes("selectedMounting={selectedMounting}");
-recordTest(
-  "Quotation Dossier System",
-  "3. App.tsx lifts authoritative glazing and mounting state into central contract",
-  appStateLiftPass,
-  "Verified central ownership of glazing/mounting in App.tsx with URL query synchronization"
-);
-
-// 4. Quotation Pricing Calculation Verification
-var testBaseSubtotal = 3444 + 764 + 1172; // 5380 (16x20 SAA-FLR-01)
-var testOptiumSubtotal = testBaseSubtotal + 1800; // 7180
-var testOptiumGst = Math.round(testOptiumSubtotal * 0.18); // 1292
-var testOptiumTotal = testOptiumSubtotal + testOptiumGst; // 8472 (Excludes unconfirmed delivery charges)
-var pricingPass = testOptiumSubtotal === 7180 && testOptiumGst === 1292 && testOptiumTotal === 8472;
-recordTest(
-  "Quotation Dossier System",
-  "4. Statutory 18% GST (HSN 4414) and glazing deltas compute mathematically pure valuations",
-  pricingPass,
-  `Base: ₹${testBaseSubtotal}, Optium (+₹1800): ₹${testOptiumSubtotal}, GST: ₹${testOptiumGst}, Total: ₹${testOptiumTotal} (Delivery unconfirmed & excluded)`
-);
-
-// 5. Commercial Integrity & Storage Safeguards
-var storageIntegrityPass = quotationStorageSource.includes("status: 'capacity_reached'") &&
-  quotationStorageSource.includes("status: 'quota_error'") &&
-  !quotationStorageSource.includes("updatedList.slice(0, MAX_SAVED_QUOTATIONS)") && // Confirms silent FIFO eviction is purged
-  quotationTypesSource.includes("to-be-confirmed-by-workshop") &&
-  quotationTypesSource.includes("shippingCost: null");
-recordTest(
-  "Quotation Dossier System",
-  "5. Commercial integrity safeguards: unapproved shipping excluded and silent FIFO eviction purged",
-  storageIntegrityPass,
-  "Verified zero silent FIFO deletion, capacity_reached error handling, and unconfirmed shipping exclusion"
-);
-
+var recBgd = RECONSTRUCTED_MOULDING_REGISTRY["SAA-BGD-08"];
+var recBgdPass = !!recBgd && recBgd.isRectangularFrame === true && recBgd.profileCurve.length >= 4 && recBgd.pbr.metalness === 0.85;
+recordTest("Moulding Reconstruction", "Brushed Champagne Gold (SAA-BGD-08) studio rectangular calibration", recBgdPass, `Profile curve points: ${recBgd?.profileCurve?.length}, metalness: ${recBgd?.pbr?.metalness}`);
+var recMhg = RECONSTRUCTED_MOULDING_REGISTRY["SAA-MHG-23"];
+var recMhgPass = !!recMhg && recMhg.isRectangularFrame === true && Array.isArray(recMhg.rectCrop) && recMhg.rectCrop[0] === 0.18 && recMhg.pbr.metalness === 0.55;
+recordTest("Moulding Reconstruction", "Rich Mahogany with Gold Egg-and-Dart (SAA-MHG-23) studio rectangular calibration", recMhgPass, `isRectangular: ${recMhg?.isRectangularFrame}, crop: [${recMhg?.rectCrop?.join(", ")}], metalness: ${recMhg?.pbr?.metalness}`);
 var total = results.length;
 var passed = results.filter((r) => r.status === "PASS").length;
 var failed = results.filter((r) => r.status === "FAIL").length;

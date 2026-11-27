@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FrameSample, DimensionUnit, MatOption, ArtworkOption, ViewMode, GeneratedMockup } from './types';
 import { FRAME_SAMPLES, MAT_OPTIONS, ARTWORK_OPTIONS } from './data/frames';
-import { getInitialMouldings, resetMouldingsStorage } from './utils/mouldingStorage';
+import { getInitialMouldings, resetMouldingsStorage, saveMouldingsToStorage } from './utils/mouldingStorage';
 import { parseRoute } from './utils/routes';
 import { prewarmMouldingTextures } from './utils/mouldingReconstruction';
 import { serializeConfigToQuery, deserializeConfigFromQuery } from './utils/frameConfig';
@@ -35,6 +35,16 @@ import {
 } from './utils/artworkStorage';
 import { getAspectRatioLabel } from './utils/pricing';
 import { SlidersHorizontal, Layers, Home, Bookmark } from 'lucide-react';
+
+const RETIRED_MOULDING_IDS = new Set([
+  'SAA-FLR-01',
+  'SAA-VEN-02',
+  'SAA-OAK-03',
+  'SAA-CRU-04',
+  'SAA-IMP-05',
+  'SAA-TUS-06',
+  'SAA-SIL-07',
+]);
 
 export function App() {
   // Initial URL query parameter deserialization for deep-linking
@@ -73,10 +83,17 @@ export function App() {
   }, [routeInfo.route, routeInfo.frameId]);
 
   // 2. Configurator Data & State Management (Synchronized with LocalStorage)
-  const [framesList, setFramesList] = useState<FrameSample[]>(getInitialMouldings);
+  const [framesList, setFramesList] = useState<FrameSample[]>(() => {
+    const loaded = getInitialMouldings();
+    const active = loaded.filter((f) => !RETIRED_MOULDING_IDS.has(f.id));
+    if (active.length !== loaded.length) {
+      saveMouldingsToStorage(active);
+    }
+    return active;
+  });
   const [selectedFrame, setSelectedFrame] = useState<FrameSample | null>(() => {
     const targetId = routeInfo.frameId || initialParams.frameId;
-    if (targetId) {
+    if (targetId && !RETIRED_MOULDING_IDS.has(targetId)) {
       const matched = framesList.find((f) => f.id === targetId) || FRAME_SAMPLES.find((f) => f.id === targetId);
       if (matched) return matched;
     }
@@ -90,7 +107,7 @@ export function App() {
 
   // Deep-linking: sync selected frame if URL contains a specific frameId
   useEffect(() => {
-    if (routeInfo.frameId) {
+    if (routeInfo.frameId && !RETIRED_MOULDING_IDS.has(routeInfo.frameId)) {
       const matched = resolveProfile(routeInfo.frameId, framesList) || framesList.find((f) => f.id === routeInfo.frameId) || FRAME_SAMPLES.find((f) => f.id === routeInfo.frameId);
       if (matched && matched.id !== selectedFrame?.id) {
         setSelectedFrame(matched);
@@ -177,7 +194,7 @@ export function App() {
     if (typeof window === 'undefined') return;
     if (routeInfo.route === 'configure' || routeInfo.route === 'studio') {
       const qs = serializeConfigToQuery({
-        frameId: selectedFrame?.id || 'SAA-FLR-01',
+        frameId: selectedFrame?.id || framesList[0]?.id || 'SAA-BGD-08',
         width,
         height,
         unit: dimensionUnit,
@@ -788,7 +805,11 @@ export function App() {
                   if (targetFrame) setSelectedFrame(targetFrame);
                   navigateTo(f ? `/configurator/${f.id}` : '/configurator');
                 }}
-                onResetStorage={() => setFramesList(resetMouldingsStorage())}
+                onResetStorage={() => {
+                  const reset = resetMouldingsStorage().filter((f) => !RETIRED_MOULDING_IDS.has(f.id));
+                  saveMouldingsToStorage(reset);
+                  setFramesList(reset);
+                }}
                 isFullView={true}
               />
             </div>
@@ -890,7 +911,7 @@ export function App() {
                 quotation={activeQuotation}
                 allFrames={framesList}
                 liveStudioConfig={{
-                  frameId: selectedFrame?.id || 'SAA-FLR-01',
+                  frameId: selectedFrame?.id || framesList[0]?.id || 'SAA-BGD-08',
                   width,
                   height,
                   unit: dimensionUnit,

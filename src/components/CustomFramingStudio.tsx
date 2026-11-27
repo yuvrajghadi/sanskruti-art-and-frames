@@ -852,7 +852,7 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
             </div>
 
             {/* --------------------------------------------------------- */}
-            {/* STEP 2: MOULDING PROFILE SELECTION (ALL 32 PROFILES)       */}
+            {/* STEP 2: MOULDING PROFILE SELECTION (ALL 25 PROFILES)       */}
             {/* --------------------------------------------------------- */}
             <div className="bg-white rounded-sm border border-[#E8E4DA] p-5 shadow-xs space-y-4">
               <div className="flex items-center justify-between">

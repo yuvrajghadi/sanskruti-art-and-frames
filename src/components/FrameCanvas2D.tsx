@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { FrameSample, MatOption, ArtworkOption, DimensionUnit } from '../types';
 import { getFrameMaterialProfile } from '../utils/frameRendering';
 import { reconstructMouldingTextures, getCachedMouldingDataUrl } from '../utils/mouldingReconstruction';
+import { computeSvgGeometry, FrameSide } from '../utils/frameGeometry';
 import { Layers, ShieldCheck, Ruler } from 'lucide-react';
 
 interface FrameCanvas2DProps {
@@ -89,35 +90,18 @@ export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
   // Material and physical profile telemetry
   const profile = getFrameMaterialProfile(frame);
 
-  // Normalize dimensions to calculate proportional border thickness
-  const wInches = unit === 'cm' ? width / 2.54 : width;
-  const hInches = unit === 'cm' ? height / 2.54 : height;
-
-  const matWInches = mat.id === 'mat-none' ? 0 : mat.borderWidth;
-  const frameWInches = frame.profileWidth;
-
-  const totalWidthInches = wInches + (frameWInches + matWInches) * 2;
-  const totalHeightInches = hInches + (frameWInches + matWInches) * 2;
+  // Single deterministic geometry source of truth (1 unit = 1 physical inch -> normalized SVG viewBox)
+  const svgGeom = computeSvgGeometry(frame, width, height, unit, mat);
+  const { metrics, vbW, vbH, mouldingFaceSvg: fW, matBorderSvg: mW, artX, artY, artW, artH, outerStepSvg: outerStep, friezeStepSvg: friezeStep, rails } = svgGeom;
 
   // Outer dimension strings
+  const totalWidthInches = metrics.outerWidthIn;
+  const totalHeightInches = metrics.outerHeightIn;
   const outerWidthMm = (totalWidthInches * 25.4).toFixed(1);
   const outerHeightMm = (totalHeightInches * 25.4).toFixed(1);
   const outerWidthIn = totalWidthInches.toFixed(2);
   const outerHeightIn = totalHeightInches.toFixed(2);
-
-  // Viewbox coordinates (normalized to 750px standard architectural viewport)
-  const maxDim = Math.max(totalWidthInches, totalHeightInches);
-  const scale = 750 / maxDim;
-
-  const vbW = totalWidthInches * scale;
-  const vbH = totalHeightInches * scale;
-  const fW = frameWInches * scale;
-  const mW = matWInches * scale;
-
-  const artX = fW + mW;
-  const artY = fW + mW;
-  const artW = vbW - 2 * (fW + mW);
-  const artH = vbH - 2 * (fW + mW);
+  const tileLenSvg = metrics.texturePeriodIn * svgGeom.scale;
 
   // Pad SVG viewBox slightly in exploded mode so shifted rails stay completely inside bounds
   const vbPad = activeMode === 'exploded' ? 28 : 0;
@@ -149,7 +133,7 @@ export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
         };
 
   const activeArtUrl = customArtUrl || artwork.imageUrl;
-  const activeTextureUrl = rectifiedTextureUrl || frame.cornerDetailUrl || frame.thumbnailUrl || '/mouldings/moulding-1.jpg';
+  const activeTextureUrl = rectifiedTextureUrl || frame.cornerDetailUrl || frame.thumbnailUrl || '/mouldings/ornate-golden-baroque-picture-frame.png';
 
   // Unique SVG element IDs namespaced by frame ID
   const cleanId = frame.id.replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -157,10 +141,6 @@ export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
   const clipBottomId = `clip-bottom-${cleanId}`;
   const clipLeftId = `clip-left-${cleanId}`;
   const clipRightId = `clip-right-${cleanId}`;
-
-  // Stepped profile tier offsets
-  const outerStep = fW * 0.16;
-  const friezeStep = fW * 0.80;
 
   return (
     <div 
@@ -285,20 +265,20 @@ export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
             xmlns="http://www.w3.org/2000/svg"
           >
             <defs>
-              {/* 0. Seamless Photometric Repeat Patterns */}
+              {/* 0. Seamless Photometric Repeat Patterns — Normalized outer->inner orientation on all 4 rails */}
               <pattern
                 id={`moulding-pat-top-${cleanId}`}
                 patternUnits="userSpaceOnUse"
-                width={fW * 3.5}
+                width={tileLenSvg}
                 height={fW}
-                x="0"
+                x={vbW / 2 - tileLenSvg / 2}
                 y="0"
               >
                 <image
                   href={activeTextureUrl}
                   x="0"
                   y="0"
-                  width={fW * 3.5}
+                  width={tileLenSvg}
                   height={fW}
                   preserveAspectRatio="none"
                 />
@@ -307,16 +287,16 @@ export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
               <pattern
                 id={`moulding-pat-bot-${cleanId}`}
                 patternUnits="userSpaceOnUse"
-                width={fW * 3.5}
+                width={tileLenSvg}
                 height={fW}
-                x="0"
+                x={vbW / 2 - tileLenSvg / 2}
                 y={vbH - fW}
               >
                 <image
                   href={activeTextureUrl}
                   x="0"
                   y="0"
-                  width={fW * 3.5}
+                  width={tileLenSvg}
                   height={fW}
                   preserveAspectRatio="none"
                   transform={`translate(0, ${fW}) scale(1, -1)`}
@@ -327,18 +307,19 @@ export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
                 id={`moulding-pat-left-${cleanId}`}
                 patternUnits="userSpaceOnUse"
                 width={fW}
-                height={fW * 3.5}
+                height={tileLenSvg}
                 x="0"
-                y="0"
+                y={vbH / 2 - tileLenSvg / 2}
               >
+                {/* Maps image y=0 (outer rim) -> x_pat=0 (X=0 outer) and y=fW (inner) -> x_pat=fW (X=fW inner) */}
                 <image
                   href={activeTextureUrl}
                   x="0"
                   y="0"
-                  width={fW * 3.5}
+                  width={tileLenSvg}
                   height={fW}
                   preserveAspectRatio="none"
-                  transform={`rotate(90) translate(0, -${fW})`}
+                  transform="matrix(0 1 1 0 0 0)"
                 />
               </pattern>
 
@@ -346,33 +327,34 @@ export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
                 id={`moulding-pat-right-${cleanId}`}
                 patternUnits="userSpaceOnUse"
                 width={fW}
-                height={fW * 3.5}
+                height={tileLenSvg}
                 x={vbW - fW}
-                y="0"
+                y={vbH / 2 - tileLenSvg / 2}
               >
+                {/* Maps image y=0 (outer rim) -> x_pat=fW (X=vbW outer) and y=fW (inner) -> x_pat=0 (X=vbW-fW inner) */}
                 <image
                   href={activeTextureUrl}
                   x="0"
                   y="0"
-                  width={fW * 3.5}
+                  width={tileLenSvg}
                   height={fW}
                   preserveAspectRatio="none"
-                  transform={`rotate(270) translate(-${fW * 3.5}, 0)`}
+                  transform={`matrix(0 1 -1 0 ${fW} 0)`}
                 />
               </pattern>
 
-              {/* 1. Miter Trapezoid Clip Paths */}
+              {/* 1. Miter Trapezoid Clip Paths driven from shared geometry */}
               <clipPath id={clipTopId}>
-                <polygon points={`0,0 ${vbW},0 ${vbW - fW},${fW} ${fW},${fW}`} />
+                <polygon points={rails.top.polygonString} />
               </clipPath>
               <clipPath id={clipBottomId}>
-                <polygon points={`0,${vbH} ${vbW},${vbH} ${vbW - fW},${vbH - fW} ${fW},${vbH - fW}`} />
+                <polygon points={rails.bottom.polygonString} />
               </clipPath>
               <clipPath id={clipLeftId}>
-                <polygon points={`0,0 ${fW},${fW} ${fW},${vbH - fW} 0,${vbH}`} />
+                <polygon points={rails.left.polygonString} />
               </clipPath>
               <clipPath id={clipRightId}>
-                <polygon points={`${vbW},0 ${vbW},${vbH} ${vbW - fW},${vbH - fW} ${vbW - fW},${fW}`} />
+                <polygon points={rails.right.polygonString} />
               </clipPath>
 
               {/* 2. Procedural Wood Grain Filters */}
@@ -415,42 +397,47 @@ export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
                 <feBlend mode="overlay" in="SourceGraphic" in2="mottleColor" />
               </filter>
 
-              {/* 5. Directional Multi-Tier Architectural Lighting Gradients */}
-              {/* Top Bar (Key light from top-left: bright upper chamfer, softly modeled cove, darker rabbet) */}
-              <linearGradient id={`grad-top-outer-${cleanId}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor={profile.highlightColor} stopOpacity="0.95" />
-                <stop offset="60%" stopColor={profile.baseColor} />
-                <stop offset="100%" stopColor={profile.shadowColor} />
+              {/* 5. Symmetrical Cross-Sectional Profile Shading (Outer -> Inner identical across all 4 bars) */}
+              <linearGradient id={`grad-top-outer-${cleanId}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={outerStep}>
+                <stop offset="0%" stopColor={profile.highlightColor} stopOpacity="0.65" />
+                <stop offset="100%" stopColor={profile.shadowColor} stopOpacity="0.25" />
               </linearGradient>
-              <linearGradient id={`grad-top-frieze-${cleanId}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor={profile.shadowColor} stopOpacity="0.6" />
-                <stop offset="25%" stopColor={profile.baseColor} />
-                <stop offset="65%" stopColor={profile.highlightColor} stopOpacity="0.85" />
-                <stop offset="100%" stopColor={profile.shadowColor} />
+              <linearGradient id={`grad-bottom-outer-${cleanId}`} gradientUnits="userSpaceOnUse" x1="0" y1={vbH} x2="0" y2={vbH - outerStep}>
+                <stop offset="0%" stopColor={profile.highlightColor} stopOpacity="0.65" />
+                <stop offset="100%" stopColor={profile.shadowColor} stopOpacity="0.25" />
               </linearGradient>
-
-              {/* Bottom Bar (Indirect ambient bounce: richer shadow tones, gold reflection) */}
-              <linearGradient id={`grad-bot-frieze-${cleanId}`} x1="0%" y1="100%" x2="0%" y2="0%">
-                <stop offset="0%" stopColor={profile.shadowColor} />
-                <stop offset="35%" stopColor={profile.baseColor} />
-                <stop offset="70%" stopColor={profile.patinaColor} />
-                <stop offset="100%" stopColor={profile.baseColor} />
+              <linearGradient id={`grad-left-outer-${cleanId}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={outerStep} y2="0">
+                <stop offset="0%" stopColor={profile.highlightColor} stopOpacity="0.65" />
+                <stop offset="100%" stopColor={profile.shadowColor} stopOpacity="0.25" />
+              </linearGradient>
+              <linearGradient id={`grad-right-outer-${cleanId}`} gradientUnits="userSpaceOnUse" x1={vbW} y1="0" x2={vbW - outerStep} y2="0">
+                <stop offset="0%" stopColor={profile.highlightColor} stopOpacity="0.65" />
+                <stop offset="100%" stopColor={profile.shadowColor} stopOpacity="0.25" />
               </linearGradient>
 
-              {/* Left Bar (Direct side key light) */}
-              <linearGradient id={`grad-left-frieze-${cleanId}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor={profile.highlightColor} stopOpacity="0.9" />
-                <stop offset="40%" stopColor={profile.baseColor} />
-                <stop offset="85%" stopColor={profile.shadowColor} />
-                <stop offset="100%" stopColor={profile.baseColor} />
+              <linearGradient id={`grad-top-frieze-${cleanId}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={fW}>
+                <stop offset="0%" stopColor={profile.shadowColor} stopOpacity="0.35" />
+                <stop offset="28%" stopColor={profile.baseColor} stopOpacity="0.15" />
+                <stop offset="70%" stopColor={profile.highlightColor} stopOpacity="0.25" />
+                <stop offset="100%" stopColor={profile.shadowColor} stopOpacity="0.45" />
               </linearGradient>
-
-              {/* Right Bar (Cast side shadow) */}
-              <linearGradient id={`grad-right-frieze-${cleanId}`} x1="100%" y1="0%" x2="0%" y2="0%">
-                <stop offset="0%" stopColor={profile.shadowColor} />
-                <stop offset="50%" stopColor={profile.baseColor} />
-                <stop offset="90%" stopColor={profile.patinaColor} />
-                <stop offset="100%" stopColor={profile.baseColor} />
+              <linearGradient id={`grad-bottom-frieze-${cleanId}`} gradientUnits="userSpaceOnUse" x1="0" y1={vbH} x2="0" y2={vbH - fW}>
+                <stop offset="0%" stopColor={profile.shadowColor} stopOpacity="0.35" />
+                <stop offset="28%" stopColor={profile.baseColor} stopOpacity="0.15" />
+                <stop offset="70%" stopColor={profile.highlightColor} stopOpacity="0.25" />
+                <stop offset="100%" stopColor={profile.shadowColor} stopOpacity="0.45" />
+              </linearGradient>
+              <linearGradient id={`grad-left-frieze-${cleanId}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={fW} y2="0">
+                <stop offset="0%" stopColor={profile.shadowColor} stopOpacity="0.35" />
+                <stop offset="28%" stopColor={profile.baseColor} stopOpacity="0.15" />
+                <stop offset="70%" stopColor={profile.highlightColor} stopOpacity="0.25" />
+                <stop offset="100%" stopColor={profile.shadowColor} stopOpacity="0.45" />
+              </linearGradient>
+              <linearGradient id={`grad-right-frieze-${cleanId}`} gradientUnits="userSpaceOnUse" x1={vbW} y1="0" x2={vbW - fW} y2="0">
+                <stop offset="0%" stopColor={profile.shadowColor} stopOpacity="0.35" />
+                <stop offset="28%" stopColor={profile.baseColor} stopOpacity="0.15" />
+                <stop offset="70%" stopColor={profile.highlightColor} stopOpacity="0.25" />
+                <stop offset="100%" stopColor={profile.shadowColor} stopOpacity="0.45" />
               </linearGradient>
 
               {/* 6. Museum Glass Glare Gradient */}
@@ -609,180 +596,76 @@ export const FrameCanvas2D: React.FC<FrameCanvas2DProps> = ({
                   )}
                 </g>
 
-                {/* 3. The 4 Mitered Frame Bars (Top, Bottom, Left, Right) */}
-                {/* --- BAR 1: TOP BAR --- */}
-                <g 
-                  clipPath={`url(#${clipTopId})`}
-                  transform={activeMode === 'exploded' ? 'translate(0, -24)' : undefined}
-                  className="transition-transform duration-500"
-                >
-                  {/* Substrate Base */}
-                  <polygon
-                    points={`0,0 ${vbW},0 ${vbW - fW},${fW} ${fW},${fW}`}
-                    fill="#1C1815"
-                  />
-
-                  {/* Photometric Molding Pattern */}
-                  <polygon
-                    points={`0,0 ${vbW},0 ${vbW - fW},${fW} ${fW},${fW}`}
-                    fill={`url(#moulding-pat-top-${cleanId})`}
-                  />
-
-                  {/* Directional Key Light Overlay */}
-                  <polygon
-                    points={`0,0 ${vbW},0 ${vbW - fW},${fW} ${fW},${fW}`}
-                    fill={`url(#grad-top-frieze-${cleanId})`}
-                    opacity="0.14"
-                    style={{ mixBlendMode: 'multiply' }}
-                  />
-
-                  {/* Outer Chamfer Lip Highlight */}
-                  <polygon
-                    points={`0,0 ${vbW},0 ${vbW - outerStep},${outerStep} ${outerStep},${outerStep}`}
-                    fill={`url(#grad-top-outer-${cleanId})`}
-                    opacity="0.25"
-                  />
-
-                  {/* Inner Sightline Beaded Fillet (for Baroque Gold / Acanthus) */}
-                  {profile.hasBeadedFillet && (
-                    <line
-                      x1={fW * 0.9}
-                      y1={fW * 0.9}
-                      x2={vbW - fW * 0.9}
-                      y2={fW * 0.9}
-                      stroke={profile.highlightColor}
-                      strokeWidth="2"
-                      strokeDasharray="3 3"
-                    />
-                  )}
-                </g>
-
-                {/* --- BAR 2: BOTTOM BAR --- */}
-                <g 
-                  clipPath={`url(#${clipBottomId})`}
-                  transform={activeMode === 'exploded' ? 'translate(0, 24)' : undefined}
-                  className="transition-transform duration-500"
-                >
-                  <polygon
-                    points={`0,${vbH} ${vbW},${vbH} ${vbW - fW},${vbH - fW} ${fW},${vbH - fW}`}
-                    fill="#1C1815"
-                  />
-
-                  <polygon
-                    points={`0,${vbH} ${vbW},${vbH} ${vbW - fW},${vbH - fW} ${fW},${vbH - fW}`}
-                    fill={`url(#moulding-pat-bot-${cleanId})`}
-                  />
-
-                  <polygon
-                    points={`0,${vbH} ${vbW},${vbH} ${vbW - fW},${vbH - fW} ${fW},${vbH - fW}`}
-                    fill={`url(#grad-bot-frieze-${cleanId})`}
-                    opacity="0.14"
-                    style={{ mixBlendMode: 'multiply' }}
-                  />
-
-                  {profile.hasBeadedFillet && (
-                    <line
-                      x1={fW * 0.9}
-                      y1={vbH - fW * 0.9}
-                      x2={vbW - fW * 0.9}
-                      y2={vbH - fW * 0.9}
-                      stroke={profile.highlightColor}
-                      strokeWidth="2"
-                      strokeDasharray="3 3"
-                    />
-                  )}
-                </g>
-
-                {/* --- BAR 3: LEFT BAR --- */}
-                <g 
-                  clipPath={`url(#${clipLeftId})`}
-                  transform={activeMode === 'exploded' ? 'translate(-24, 0)' : undefined}
-                  className="transition-transform duration-500"
-                >
-                  <polygon
-                    points={`0,0 ${fW},${fW} ${fW},${vbH - fW} 0,${vbH}`}
-                    fill="#1C1815"
-                  />
-
-                  <polygon
-                    points={`0,0 ${fW},${fW} ${fW},${vbH - fW} 0,${vbH}`}
-                    fill={`url(#moulding-pat-left-${cleanId})`}
-                  />
-
-                  <polygon
-                    points={`0,0 ${fW},${fW} ${fW},${vbH - fW} 0,${vbH}`}
-                    fill={`url(#grad-left-frieze-${cleanId})`}
-                    opacity="0.14"
-                    style={{ mixBlendMode: 'multiply' }}
-                  />
-
-                  {profile.hasBeadedFillet && (
-                    <line
-                      x1={fW * 0.9}
-                      y1={fW * 0.9}
-                      x2={fW * 0.9}
-                      y2={vbH - fW * 0.9}
-                      stroke={profile.highlightColor}
-                      strokeWidth="2"
-                      strokeDasharray="3 3"
-                    />
-                  )}
-                </g>
-
-                {/* --- BAR 4: RIGHT BAR --- */}
-                <g 
-                  clipPath={`url(#${clipRightId})`}
-                  transform={activeMode === 'exploded' ? 'translate(24, 0)' : undefined}
-                  className="transition-transform duration-500"
-                >
-                  <polygon
-                    points={`${vbW},0 ${vbW},${vbH} ${vbW - fW},${vbH - fW} ${vbW - fW},${fW}`}
-                    fill="#1C1815"
-                  />
-
-                  <polygon
-                    points={`${vbW},0 ${vbW},${vbH} ${vbW - fW},${vbH - fW} ${vbW - fW},${fW}`}
-                    fill={`url(#moulding-pat-right-${cleanId})`}
-                  />
-
-                  <polygon
-                    points={`${vbW},0 ${vbW},${vbH} ${vbW - fW},${vbH - fW} ${vbW - fW},${fW}`}
-                    fill={`url(#grad-right-frieze-${cleanId})`}
-                    opacity="0.14"
-                    style={{ mixBlendMode: 'multiply' }}
-                  />
-
-                  {profile.hasBeadedFillet && (
-                    <line
-                      x1={vbW - fW * 0.9}
-                      y1={fW * 0.9}
-                      x2={vbW - fW * 0.9}
-                      y2={vbH - fW * 0.9}
-                      stroke={profile.highlightColor}
-                      strokeWidth="2"
-                      strokeDasharray="3 3"
-                    />
-                  )}
-                </g>
+                {/* 3. The 4 Symmetrical Mitered Frame Bars driven uniformly by shared geometry */}
+                {(['top', 'bottom', 'left', 'right'] as FrameSide[]).map((side) => {
+                  const rail = rails[side];
+                  const clipId =
+                    side === 'top'
+                      ? clipTopId
+                      : side === 'bottom'
+                        ? clipBottomId
+                        : side === 'left'
+                          ? clipLeftId
+                          : clipRightId;
+                  const patKey = side === 'bottom' ? 'bot' : side;
+                  return (
+                    <g
+                      key={side}
+                      data-frame-rail={side}
+                      clipPath={`url(#${clipId})`}
+                      transform={
+                        activeMode === 'exploded'
+                          ? `translate(${rail.explodedOffset.x}, ${rail.explodedOffset.y})`
+                          : undefined
+                      }
+                      className="transition-transform duration-500"
+                    >
+                      <polygon points={rail.polygonString} fill="#1C1815" />
+                      <polygon points={rail.polygonString} fill={`url(#moulding-pat-${patKey}-${cleanId})`} />
+                      <polygon
+                        points={rail.polygonString}
+                        fill={`url(#grad-${side}-frieze-${cleanId})`}
+                        opacity="0.12"
+                        style={{ mixBlendMode: 'multiply' }}
+                      />
+                      <polygon
+                        points={rail.outerChamferPointsString}
+                        fill={`url(#grad-${side}-outer-${cleanId})`}
+                        opacity="0.16"
+                      />
+                      {profile.hasBeadedFillet && (
+                        <line
+                          x1={rail.filletLine.x1}
+                          y1={rail.filletLine.y1}
+                          x2={rail.filletLine.x2}
+                          y2={rail.filletLine.y2}
+                          stroke={profile.highlightColor}
+                          strokeWidth="1.5"
+                          strokeDasharray="3 3"
+                          opacity="0.7"
+                        />
+                      )}
+                    </g>
+                  );
+                })}
 
                 {/* 4. Authentic 45° Miter Corner Hairline Seams */}
                 {activeMode !== 'exploded' && (
                   <g>
-                    {/* Top-Left Corner 45° Joint */}
-                    <line x1="0" y1="0" x2={fW} y2={fW} stroke="rgba(0,0,0,0.50)" strokeWidth="0.8" />
-                    <line x1="0.6" y1="0" x2={fW + 0.6} y2={fW} stroke="rgba(255,255,255,0.40)" strokeWidth="0.5" />
-
-                    {/* Top-Right Corner 45° Joint */}
-                    <line x1={vbW} y1="0" x2={vbW - fW} y2={fW} stroke="rgba(0,0,0,0.50)" strokeWidth="0.8" />
-                    <line x1={vbW - 0.6} y1="0" x2={vbW - fW - 0.6} y2={fW} stroke="rgba(255,255,255,0.40)" strokeWidth="0.5" />
-
-                    {/* Bottom-Right Corner 45° Joint */}
-                    <line x1={vbW} y1={vbH} x2={vbW - fW} y2={vbH - fW} stroke="rgba(0,0,0,0.50)" strokeWidth="0.8" />
-                    <line x1={vbW - 0.6} y1={vbH} x2={vbW - fW - 0.6} y2={vbH - fW} stroke="rgba(255,255,255,0.40)" strokeWidth="0.5" />
-
-                    {/* Bottom-Left Corner 45° Joint */}
-                    <line x1="0" y1={vbH} x2={fW} y2={vbH - fW} stroke="rgba(0,0,0,0.50)" strokeWidth="0.8" />
-                    <line x1="0.6" y1={vbH} x2={fW + 0.6} y2={vbH - fW} stroke="rgba(255,255,255,0.40)" strokeWidth="0.5" />
+                    {(['top', 'bottom', 'left', 'right'] as FrameSide[]).map((side) => {
+                      const { x1, y1, x2, y2 } = rails[side].miterLine;
+                      return (
+                        <line
+                          key={`miter-${side}`}
+                          x1={x1}
+                          y1={y1}
+                          x2={x2}
+                          y2={y2}
+                          stroke="rgba(0,0,0,0.42)"
+                          strokeWidth="0.75"
+                        />
+                      );
+                    })}
 
                     {/* Inner Rabbet Drop Shadow onto Mat/Art */}
                     <rect
