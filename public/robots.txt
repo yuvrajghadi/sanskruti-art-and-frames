@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Allow: /catalog
+Allow: /product/
+Allow: /configurator
+Allow: /studio
+Allow: /custom-photo-framing
+Allow: /canvas-framing
+Allow: /wholesale-mouldings
+
+Disallow: /review
+Disallow: /quotations
+Disallow: /quotation/
+
+Sitemap: https://sanskrutiarts.com/sitemap.xml

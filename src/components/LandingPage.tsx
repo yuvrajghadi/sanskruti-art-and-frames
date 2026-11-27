@@ -9,6 +9,8 @@ import { FRAME_SAMPLES } from '../data/frames';
 import { FrameSample } from '../types';
 import { getMouldingFootRateINR, formatINR } from '../utils/pricing';
 import { getIndianWhatsAppUrl, WHATSAPP_DISPLAY_PHONE } from '../utils/whatsapp';
+import { saveLead } from '../utils/leadStorage';
+import { LANDING_FAQS } from '../utils/seo';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { FrameDetailModal } from './FrameDetailModal';
@@ -114,6 +116,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   const handleConsultSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    saveLead({
+      leadType: 'sample_kit',
+      clientName: consultName,
+      mobile: consultEmail,
+      cityOrPin: consultNotes || 'India',
+      skus: FEATURED_STITCH_PROFILES.map((p) => p.mappedId),
+      configurationUrl: typeof window !== 'undefined' ? window.location.href : '/',
+      notes: consultNotes || 'Landing Page Trade Sample Kit enquiry',
+    });
     setConsultSuccess(true);
     if (typeof window !== 'undefined') {
       window.open(sampleKitWhatsAppUrl, '_blank', 'noopener,noreferrer');
@@ -645,6 +656,38 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </div>
 
+          </div>
+        </section>
+
+        {/* ========================================================================= */}
+        {/* SECTION 5B: FREQUENTLY ASKED QUESTIONS (MATCHING FAQPAGE JSON-LD)         */}
+        {/* ========================================================================= */}
+        <section id="faq" className="bg-light-surface-container-low py-section border-b border-light-outline-variant/60">
+          <div className="max-w-[1360px] mx-auto px-gutter-lg md:px-page-margin">
+            <div className="max-w-2xl mb-gutter-xl space-y-2">
+              <span className="font-label text-label-sm uppercase tracking-widest text-light-secondary font-semibold">
+                Framing &amp; Trade Guidance
+              </span>
+              <h2 className="font-headline text-headline-lg-mobile lg:text-headline-lg text-light-primary text-balance">
+                Frequently Asked Questions
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter-lg">
+              {LANDING_FAQS.map((faq) => (
+                <article
+                  key={faq.question}
+                  className="bg-light-surface border border-light-outline-variant/60 rounded-sm p-gutter-lg flex flex-col gap-gutter-sm shadow-xs"
+                >
+                  <h3 className="font-title text-title-lg text-light-primary font-semibold leading-snug">
+                    {faq.question}
+                  </h3>
+                  <p className="font-body text-body-md text-light-on-surface-variant leading-relaxed">
+                    {faq.answer}
+                  </p>
+                </article>
+              ))}
+            </div>
           </div>
         </section>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FrameSample, DimensionUnit, ViewMode, GeneratedMockup, MatOption, ArtworkOption } from '../types';
 import { FrameCanvas2D } from './FrameCanvas2D';
 import { ThreeFrameViewer, LightingEnv, CameraAngle, PatinaMode } from './ThreeFrameViewer';
@@ -51,6 +51,22 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
   onRegenerate,
   artworkFit = 'fill',
 }) => {
+  // Mobile-first 2D default (< 768px) to avoid blocking mobile paint with immediate WebGL init
+  const [isMobileViewport, setIsMobileViewport] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+  const [mobile3DApproved, setMobile3DApproved] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onResize = () => setIsMobileViewport(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  const effectiveViewMode: ViewMode =
+    viewMode === '3d' && isMobileViewport && !mobile3DApproved ? '2d' : viewMode;
+
   // 3D Studio Settings
   const [lighting, setLighting] = useState<LightingEnv>('3000k');
   const [cameraPreset, setCameraPreset] = useState<CameraAngle>('corner');
@@ -142,9 +158,12 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
           <div className="inline-flex p-0.5 bg-[#E8E4DA]/60 rounded-xl border border-[#E8E4DA] text-xs font-medium">
             <button
               type="button"
-              onClick={() => onViewModeChange('2d')}
+              onClick={() => {
+                setMobile3DApproved(false);
+                onViewModeChange('2d');
+              }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                viewMode === '2d'
+                effectiveViewMode === '2d'
                   ? 'bg-[#24382F] text-white shadow-xs font-semibold'
                   : 'text-[#5A615C] hover:text-[#24382F]'
               }`}
@@ -154,15 +173,19 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => onViewModeChange('3d')}
+              data-testid="preview-canvas-inspect-3d-btn"
+              onClick={() => {
+                setMobile3DApproved(true);
+                onViewModeChange('3d');
+              }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                viewMode === '3d'
+                effectiveViewMode === '3d'
                   ? 'bg-[#24382F] text-white shadow-xs font-semibold'
                   : 'text-[#5A615C] hover:text-[#24382F]'
               }`}
             >
               <Box className="w-3.5 h-3.5" />
-              <span>3D Studio</span>
+              <span>{isMobileViewport && effectiveViewMode === '2d' ? 'Inspect in 3D Studio' : '3D Studio'}</span>
             </button>
           </div>
 
@@ -173,7 +196,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
           </span>
 
           {/* 2D Sub-mode Switcher */}
-          {viewMode === '2d' && (
+          {effectiveViewMode === '2d' && (
             <div className="hidden md:inline-flex p-0.5 bg-[#E8E4DA]/60 rounded-xl border border-[#E8E4DA] text-xs font-medium">
               <button
                 type="button"
@@ -212,7 +235,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
           )}
 
           {/* Studio Wall Color Switcher */}
-          {viewMode === '2d' && (
+          {effectiveViewMode === '2d' && (
             <div className="hidden lg:flex items-center gap-1 bg-white p-1 rounded-xl border border-[#E8E4DA] text-xs shadow-2xs">
               <span className="text-[11px] text-[#727874] px-1.5 font-medium">Wall:</span>
               {(['stone', 'forest', 'linen', 'alabaster', 'obsidian'] as const).map((colorKey) => (
@@ -235,7 +258,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
 
         {/* Right Tools / Action CTAs */}
         <div className="flex items-center gap-2">
-          {viewMode === '3d' && (
+          {effectiveViewMode === '3d' && (
             <button
               type="button"
               onClick={() => setIsFullscreen(!isFullscreen)}
@@ -280,7 +303,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
         {/* ============================================================= */}
         {/* VIEW 1: 3D INTERACTIVE RAYTRACING STUDIO                      */}
         {/* ============================================================= */}
-        {viewMode === '3d' ? (
+        {effectiveViewMode === '3d' ? (
           <div className="flex-1 flex flex-col xl:flex-row overflow-hidden bg-gradient-to-b from-[#1C1917] via-[#141312] to-[#0A0A09] text-white">
             {/* 3D WebGL Canvas Viewport */}
             <div className="flex-1 relative flex flex-col justify-between p-4 sm:p-6 overflow-hidden min-h-[460px]">

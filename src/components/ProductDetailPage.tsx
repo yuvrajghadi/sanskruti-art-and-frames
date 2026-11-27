@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FrameSample } from '../types';
 import { getMouldingFootRateINR } from '../utils/pricing';
 import { getWhatsAppNumber } from '../utils/whatsapp';
+import { saveLead } from '../utils/leadStorage';
 import { getCompanionProfiles } from '../utils/productMapping';
 import { 
   ArrowRight, 
@@ -135,8 +136,18 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   const handleKitSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    saveLead({
+      leadType: 'sample_kit',
+      clientName: kitForm.name,
+      mobile: kitForm.phone,
+      cityOrPin: [kitForm.organization, kitForm.city].filter(Boolean).join(' · '),
+      skus: [frame.id],
+      configurationUrl: typeof window !== 'undefined' ? window.location.href : `/product/${frame.id}`,
+      estimatedTotalINR: inrRate,
+      notes: `Architect Sample Kit requested from Product Detail (${frame.name})`,
+    });
     const msg = `Namaste Sanskruti Arts! I would like to request an Architect's Trade Sample Kit for profile ${frame.name} (#${frame.id}):\n\n• Name: ${kitForm.name}\n• Studio/Firm: ${kitForm.organization || 'Independent'}\n• City: ${kitForm.city}\n• Contact: ${kitForm.phone}\n\nPlease share kit details and courier tracking information.`;
-    window.open(`https://wa.me/${getWhatsAppNumber()}?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://wa.me/${getWhatsAppNumber()}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
     setIsSampleKitModalOpen(false);
   };
 
@@ -197,10 +208,17 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   <span className="font-mono text-mono-sm bg-light-primary/90 backdrop-blur-xs text-light-on-primary px-3 py-1 rounded-xs border border-white/20">
                     #{frame.id}
                   </span>
-                  {frame.isWorkshopSample && (
+                  {frame.isWorkshopSample ? (
                     <span className="bg-accent text-light-on-primary font-label text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-xs flex items-center gap-1 shadow-xs">
                       <Camera className="w-3 h-3" />
                       <span>Workshop Original</span>
+                    </span>
+                  ) : (
+                    <span
+                      data-testid="architectural-preview-badge"
+                      className="bg-[#FAF8F5]/95 text-[#24382F] border border-[#C1C8C2] font-label text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-xs shadow-xs"
+                    >
+                      Architectural Finish Preview
                     </span>
                   )}
                 </div>

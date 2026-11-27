@@ -22,15 +22,41 @@ export interface WhatsAppQuoteParams {
   currency?: string;
 }
 
+export const DEFAULT_PLACEHOLDER_WHATSAPP = '919820000000';
+export const DEFAULT_OFFICIAL_WHATSAPP = '918793242979';
+
 /**
  * Returns sanitized WhatsApp recipient phone number from environment or official atelier line.
- * Default official atelier line: +91 98200 00000 (Mumbai Workshop).
+ * Default official atelier line: +91 87932 42979 (Sanskruti Arts Workshop).
  */
 export function getWhatsAppNumber(): string {
   const envNumber = typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_WHATSAPP_NUMBER;
-  const rawNumber = envNumber || '919820000000';
+  const rawNumber = envNumber || DEFAULT_OFFICIAL_WHATSAPP;
   // Strip non-digits
-  return rawNumber.replace(/\D/g, '');
+  return String(rawNumber).replace(/\D/g, '');
+}
+
+/**
+ * Returns true if production or current environment points at a placeholder or invalid WhatsApp number.
+ */
+export function isPlaceholderWhatsAppConfigured(): boolean {
+  const digits = getWhatsAppNumber();
+  return !digits || digits.length < 10 || digits === DEFAULT_PLACEHOLDER_WHATSAPP || /^0+$/.test(digits);
+}
+
+let prodWhatsAppWarnLogged = false;
+
+/**
+ * Logs an explicit console warning in production builds if VITE_WHATSAPP_NUMBER is missing or still placeholder.
+ */
+export function warnIfPlaceholderWhatsAppInProd(): void {
+  const isProd = typeof import.meta !== 'undefined' && Boolean((import.meta as any).env?.PROD);
+  if (isProd && isPlaceholderWhatsAppConfigured() && !prodWhatsAppWarnLogged) {
+    prodWhatsAppWarnLogged = true;
+    console.warn(
+      '[Sanskruti Arts] Production warning: VITE_WHATSAPP_NUMBER is unset or set to placeholder +91 98200 00000. Configure VITE_WHATSAPP_NUMBER before directing live customer traffic.'
+    );
+  }
 }
 
 /**

@@ -4,6 +4,7 @@ import { getWholesaleItemForFrame } from '../data/wholesale';
 import { getWhatsAppNumber } from '../utils/whatsapp';
 import { getMouldingFootRateINR } from '../utils/pricing';
 import { resolveProfile } from '../utils/productMapping';
+import { saveLead } from '../utils/leadStorage';
 import { 
   Search, 
   Check, 
@@ -32,6 +33,7 @@ interface SidebarCatalogProps {
   externalSearchQuery?: string;
   onExternalSearchChange?: (query: string) => void;
   isFullView?: boolean;
+  initialWholesaleMode?: boolean;
 }
 
 type SortOption = 'default' | 'name-asc' | 'price-asc' | 'price-desc' | 'width-asc' | 'width-desc';
@@ -47,13 +49,20 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
   externalSearchQuery,
   onExternalSearchChange,
   isFullView = false,
+  initialWholesaleMode = false,
 }) => {
   const [activeCategory, setActiveCategory] = useState<FrameCategory>('all');
   const [searchQuery, setSearchQuery] = useState(externalSearchQuery || '');
   const [sortOption, setSortOption] = useState<SortOption>('default');
-  const [isWholesaleMode, setIsWholesaleMode] = useState<boolean>(false);
+  const [isWholesaleMode, setIsWholesaleMode] = useState<boolean>(initialWholesaleMode);
   const [isSampleKitModalOpen, setIsSampleKitModalOpen] = useState(false);
   const [kitForm, setKitForm] = useState({ name: '', organization: '', city: '', phone: '' });
+
+  useEffect(() => {
+    if (initialWholesaleMode) {
+      setIsWholesaleMode(true);
+    }
+  }, [initialWholesaleMode]);
 
   useEffect(() => {
     if (!isSampleKitModalOpen) return;
@@ -135,8 +144,17 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
 
   const handleKitSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    saveLead({
+      leadType: 'sample_kit',
+      clientName: kitForm.name,
+      mobile: kitForm.phone,
+      cityOrPin: [kitForm.organization, kitForm.city].filter(Boolean).join(' · '),
+      skus: selectedFrame ? [selectedFrame.id] : frames.slice(0, 6).map((f) => f.id),
+      configurationUrl: typeof window !== 'undefined' ? window.location.href : '/catalog',
+      notes: 'Architectural Sample Kit requested from Moulding Catalogue',
+    });
     const msg = `Namaste Sanskruti Arts! I would like to request an Architect's Trade Sample Kit:\n\n• Name: ${kitForm.name}\n• Studio/Firm: ${kitForm.organization || 'Independent'}\n• City: ${kitForm.city}\n• Contact: ${kitForm.phone}\n\nPlease share kit details and courier tracking information.`;
-    window.open(`https://wa.me/${getWhatsAppNumber()}?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://wa.me/${getWhatsAppNumber()}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
     setIsSampleKitModalOpen(false);
   };
 
@@ -335,6 +353,41 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
       {/* ========================================================================= */}
       <div className={`flex-1 ${isFullView ? 'max-w-[1360px] mx-auto px-gutter-lg md:px-page-margin py-8 w-full' : 'p-4 overflow-y-auto space-y-4'}`}>
         
+        {/* Dedicated B2B Wholesale Trade Banner */}
+        {isWholesaleMode && isFullView && (
+          <div
+            data-testid="wholesale-trade-banner"
+            className="mb-6 p-5 sm:p-6 bg-[#1B3B2B] text-[#F7F5EF] rounded-sm border border-accent/40 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-xs"
+          >
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="bg-accent text-light-on-primary font-mono text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-xs">
+                  B2B Trade &amp; Carton Program
+                </span>
+                <span className="font-mono text-[11px] text-[#E8D5B0]">
+                  HSN 4414 GST Tax Invoicing
+                </span>
+              </div>
+              <h2 className="font-headline text-xl sm:text-2xl font-semibold text-white">
+                Factory-Direct Moulding Cartons — 2-Day Workshop Dispatch
+              </h2>
+              <p className="font-body text-xs sm:text-sm text-[#D1E8DB] max-w-2xl">
+                Ordered in sealed mill boxes (9.0 ft &amp; 9.5 ft sticks, 90–228 linear ft/box) with 12%–25% volume tier discounts for regional framing studios, galleries, and interior contractors.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 shrink-0 font-mono text-xs">
+              <div className="px-3 py-2 bg-white/10 rounded-sm border border-white/15">
+                <span className="block text-[10px] text-[#CCA563] uppercase">Dispatch Lead Time</span>
+                <span className="font-bold text-white">2 Working Days</span>
+              </div>
+              <div className="px-3 py-2 bg-white/10 rounded-sm border border-white/15">
+                <span className="block text-[10px] text-[#CCA563] uppercase">Volume Rebates</span>
+                <span className="font-bold text-white">12% – 25% Off</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {filteredAndSortedFrames.length === 0 ? (
           <div className="text-center py-20 px-4 bg-light-surface-container-low border border-dashed border-light-outline-variant/60 rounded-sm">
             <SlidersHorizontal className="w-10 h-10 text-light-outline/60 mx-auto mb-3" />
@@ -361,7 +414,7 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
               const inrRate = getMouldingFootRateINR(frame);
               const rabbetDepth = (frame.depth * 0.55).toFixed(2);
               const photo = frame.cornerDetailUrl || frame.thumbnailUrl;
-              const wholesaleItem = getWholesaleItemForFrame(frame.id);
+              const wholesaleItem = getWholesaleItemForFrame(frame.id, frame);
 
               return (
                 <div
@@ -400,10 +453,17 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
                         <span className="font-mono text-mono-sm bg-light-primary/90 backdrop-blur-xs text-light-on-primary px-2 py-0.5 rounded-xs border border-white/20">
                           #{frame.id}
                         </span>
-                        {frame.isWorkshopSample && (
+                        {frame.isWorkshopSample ? (
                           <span className="bg-accent text-light-on-primary font-label text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-xs flex items-center gap-1 shadow-xs">
                             <Camera className="w-2.5 h-2.5" />
                             <span>Workshop Original</span>
+                          </span>
+                        ) : (
+                          <span
+                            data-testid="architectural-preview-badge"
+                            className="bg-[#FAF8F5]/95 text-[#24382F] border border-[#C1C8C2] font-label text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-xs shadow-xs"
+                          >
+                            Architectural Finish Preview
                           </span>
                         )}
                       </div>
@@ -471,16 +531,28 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
                           const ws = wholesaleItem;
                           const inrFt = ws ? ws.pricePerFootINR : Math.round(inrRate * 0.75);
                           const boxFt = ws ? ws.totalFootagePerBox : 108;
+                          const stickFt = ws ? ws.stickLengthFeet : 9.0;
+                          const pcs = ws ? ws.piecesPerBox : 12;
+                          const moq = ws ? ws.minOrderBoxes : 1;
+                          const maxDisc = ws?.tierDiscounts?.reduce((acc, t) => Math.max(acc, t.discountPercent), 0) || 22;
                           return (
-                            <div>
-                              <div className="flex items-baseline gap-1">
-                                <span className="font-headline text-2xl font-bold text-accent">
-                                  ₹{inrFt}
+                            <div className="w-full space-y-1">
+                              <div className="flex items-baseline justify-between gap-2">
+                                <div className="flex items-baseline gap-1">
+                                  <span className="font-headline text-2xl font-bold text-accent">
+                                    ₹{inrFt}
+                                  </span>
+                                  <span className="font-mono text-xs text-light-secondary">/ linear ft</span>
+                                </div>
+                                <span
+                                  data-testid="wholesale-tier-badge"
+                                  className="font-mono text-[10px] font-bold bg-[#1B3B2B] text-[#E8D5B0] px-1.5 py-0.5 rounded-xs"
+                                >
+                                  Up to {maxDisc}% Vol. Off
                                 </span>
-                                <span className="font-mono text-xs text-light-secondary">/ linear ft</span>
                               </div>
                               <span className="font-mono text-[10px] text-light-on-surface-variant block">
-                                ₹{(inrFt * boxFt).toLocaleString('en-IN')} / carton ({boxFt} ft)
+                                ₹{(inrFt * boxFt).toLocaleString('en-IN')} / box ({pcs} × {stickFt} ft = {boxFt} ft) · MOQ {moq} box{moq > 1 ? 'es' : ''}
                               </span>
                             </div>
                           );
@@ -522,7 +594,17 @@ export const SidebarCatalog: React.FC<SidebarCatalogProps> = ({
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            saveLead({
+                              leadType: 'quick_quote',
+                              clientName: 'Wholesale Trade Buyer',
+                              skus: [wholesaleItem?.sku || frame.id, frame.id],
+                              configurationUrl: typeof window !== 'undefined' ? window.location.href : '/wholesale-mouldings',
+                              estimatedTotalINR: wholesaleItem ? wholesaleItem.pricePerFootINR * wholesaleItem.totalFootagePerBox : null,
+                              notes: `B2B Carton Enquiry (${wholesaleItem?.totalFootagePerBox || 108} ft/box)`,
+                            });
+                          }}
                           className="py-2 px-3 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-sm font-label text-[11px] uppercase tracking-wider transition-colors flex items-center justify-center gap-1"
                         >
                           <MessageCircle className="w-3.5 h-3.5" />

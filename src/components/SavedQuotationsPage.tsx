@@ -17,6 +17,13 @@ import {
 } from '../utils/quotationStorage';
 import { deleteArtworkAssetIfUnreferenced } from '../utils/artworkStorage';
 import { buildQuotationWhatsAppHandoff } from '../utils/quotationEnquiry';
+import {
+  getSavedLeads,
+  deleteSavedLead,
+  exportLeadsToCsv,
+  getLeadTypeLabel,
+} from '../utils/leadStorage';
+import { formatINR } from '../utils/pricing';
 import { validateCustomerDetails } from './QuotationReviewPage';
 import { EyebrowBadge } from './ui/LuxuryPrimitives';
 import {
@@ -116,6 +123,7 @@ export const SavedQuotationsPage: React.FC<SavedQuotationsPageProps> = ({
   activeQuotationId,
 }) => {
   const [ledgerVersion, setLedgerVersion] = useState(0);
+  const [activeLedgerTab, setActiveLedgerTab] = useState<'quotations' | 'enquiries'>('quotations');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<QuotationStatusFilter>('all');
   const [sortBy, setSortBy] = useState<QuotationSortOption>('newest');
@@ -148,6 +156,26 @@ export const SavedQuotationsPage: React.FC<SavedQuotationsPageProps> = ({
     void ledgerVersion;
     return inspectSavedQuotationsLedger();
   }, [ledgerVersion]);
+
+  const savedLeads = useMemo(() => {
+    void ledgerVersion;
+    return getSavedLeads();
+  }, [ledgerVersion]);
+
+  const handleExportLeadsCsv = () => {
+    if (savedLeads.length === 0 || typeof window === 'undefined') return;
+    const csv = exportLeadsToCsv(savedLeads);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sanskruti_leads_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setActionNotice(`Exported ${savedLeads.length} local enquiry record(s) to CSV.`);
+  };
 
   const filteredQuotations = useMemo(
     () =>
@@ -333,6 +361,53 @@ export const SavedQuotationsPage: React.FC<SavedQuotationsPageProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            <div
+              role="tablist"
+              aria-label="Ledger sections"
+              className="inline-flex p-0.5 bg-[#E8E4DA]/70 border border-[#C1C8C2] rounded-sm"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeLedgerTab === 'quotations'}
+                data-testid="tab-saved-quotations"
+                onClick={() => setActiveLedgerTab('quotations')}
+                className={`px-3.5 py-2 rounded-xs font-label text-xs uppercase tracking-wider font-semibold transition-colors cursor-pointer ${
+                  activeLedgerTab === 'quotations'
+                    ? 'bg-[#1B3B2B] text-white shadow-xs'
+                    : 'text-[#424844] hover:text-[#1B3B2B]'
+                }`}
+              >
+                Quotations ({totalSaved})
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeLedgerTab === 'enquiries'}
+                data-testid="tab-saved-enquiries"
+                onClick={() => setActiveLedgerTab('enquiries')}
+                className={`px-3.5 py-2 rounded-xs font-label text-xs uppercase tracking-wider font-semibold transition-colors cursor-pointer ${
+                  activeLedgerTab === 'enquiries'
+                    ? 'bg-[#1B3B2B] text-white shadow-xs'
+                    : 'text-[#424844] hover:text-[#1B3B2B]'
+                }`}
+              >
+                Saved Enquiries ({savedLeads.length})
+              </button>
+            </div>
+
+            {activeLedgerTab === 'enquiries' && savedLeads.length > 0 && (
+              <button
+                type="button"
+                onClick={handleExportLeadsCsv}
+                data-testid="export-leads-csv-btn"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-sm border border-[#1B3B2B] bg-white hover:bg-[#F7F3EB] text-[#1B3B2B] font-label text-xs uppercase tracking-widest font-semibold transition-colors shadow-xs cursor-pointer"
+              >
+                <Download className="w-4 h-4 text-[#9C7A3C]" />
+                <span>Export CSV</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={onStartNewConfiguration}
@@ -347,6 +422,101 @@ export const SavedQuotationsPage: React.FC<SavedQuotationsPageProps> = ({
       </div>
 
       <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {activeLedgerTab === 'enquiries' && (
+          <section data-testid="saved-enquiries-panel" className="space-y-4">
+            <div className="bg-white border border-[#C1C8C2]/80 rounded-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="font-serif text-lg sm:text-xl font-bold text-[#1B3B2B]">
+                  Trade Sample Kit &amp; Quick Quote Enquiries ({savedLeads.length} / 100)
+                </h2>
+                <p className="text-xs text-[#5A615C]">
+                  Logged automatically in browser LocalStorage (<code>sanskruti_leads_v1</code>) prior to WhatsApp handoff.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleExportLeadsCsv}
+                disabled={savedLeads.length === 0}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-sm bg-[#1B3B2B] hover:bg-[#032517] disabled:opacity-40 text-white font-label text-xs uppercase tracking-wider font-semibold transition-colors cursor-pointer shrink-0"
+              >
+                <Download className="w-3.5 h-3.5 text-[#CCA563]" />
+                <span>Export CSV ({savedLeads.length})</span>
+              </button>
+            </div>
+
+            {savedLeads.length === 0 ? (
+              <div className="bg-white border border-[#C1C8C2]/80 rounded-sm p-10 text-center space-y-3">
+                <p className="font-headline text-2xl font-semibold text-[#1B3B2B]">
+                  No Enquiries Logged Yet
+                </p>
+                <p className="text-xs sm:text-sm text-[#5A615C] max-w-md mx-auto">
+                  Any Trade Sample Kit request, Quick Quote, Sizing Help request, or Formal Dossier enquiry triggered from this browser is recorded here automatically.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {savedLeads.map((lead) => (
+                  <article
+                    key={lead.id}
+                    data-testid="saved-enquiry-card"
+                    className="bg-white border border-[#C1C8C2]/80 rounded-sm p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs"
+                  >
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-[11px] font-bold px-2 py-0.5 bg-[#1B3B2B] text-white rounded-xs">
+                          {getLeadTypeLabel(lead.leadType)}
+                        </span>
+                        <span className="font-mono text-xs text-[#5A615C]">
+                          {new Date(lead.createdAt).toLocaleString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                      <h3 className="font-serif text-base sm:text-lg font-bold text-[#1B3B2B]">
+                        {lead.clientName}{' '}
+                        <span className="font-mono text-xs font-normal text-[#5A615C]">
+                          · {lead.mobile} · {lead.cityOrPin}
+                        </span>
+                      </h3>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-[#424844]">
+                        <span className="font-mono font-semibold text-[#7A4B28]">
+                          SKU(s): {lead.skus.join(', ')}
+                        </span>
+                        {lead.notes && <span className="text-[#5A615C]">· {lead.notes}</span>}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0">
+                      {lead.estimatedTotalINR !== null && (
+                        <span className="font-serif text-xl font-bold text-[#1B3B2B]">
+                          {formatINR(lead.estimatedTotalINR)}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          deleteSavedLead(lead.id);
+                          refreshLedger();
+                        }}
+                        aria-label="Delete saved enquiry"
+                        className="p-2 border border-red-200 text-red-700 hover:bg-red-50 rounded-sm cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {activeLedgerTab === 'quotations' && (
+          <>
         {/* Capacity Reached Guidance */}
         {isAtCapacity && (
           <div
@@ -894,6 +1064,8 @@ export const SavedQuotationsPage: React.FC<SavedQuotationsPageProps> = ({
             );
           })}
         </div>
+          </>
+        )}
       </div>
     </div>
   );

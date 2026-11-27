@@ -10,6 +10,7 @@ import {
 import { formatINR } from '../utils/pricing';
 import { WHATSAPP_DISPLAY_PHONE } from '../utils/whatsapp';
 import { buildQuotationWhatsAppHandoff } from '../utils/quotationEnquiry';
+import { saveLead } from '../utils/leadStorage';
 import { loadCustomArtworkAsset, DOSSIER_ARTWORK_UNAVAILABLE_SVG } from '../utils/artworkStorage';
 import { MAT_OPTIONS, ARTWORK_OPTIONS } from '../data/frames';
 import { GLAZING_OPTIONS } from './CustomFramingStudio';
@@ -444,6 +445,19 @@ export const QuotationReviewPage: React.FC<QuotationReviewPageProps> = ({
       setWhatsappError(whatsappHandoff.error || 'Could not build WhatsApp enquiry URL.');
       return;
     }
+
+    saveLead({
+      leadType: 'formal_dossier',
+      clientName: customer.fullName,
+      mobile: customer.phone,
+      cityOrPin: [customer.city, customer.state, customer.postalCode ? `PIN ${customer.postalCode}` : '']
+        .filter(Boolean)
+        .join(', '),
+      skus: [spec.frameId],
+      configurationUrl: quotation.studioShareUrl || (typeof window !== 'undefined' ? window.location.href : '/review'),
+      estimatedTotalINR: displayPricing.totalEstimatedAmount,
+      notes: `Ref #${quotation.quotationNumber} · ${spec.width}×${spec.height} ${spec.unit}`,
+    });
 
     onSaveSnapshot('whatsapp_opened');
     setEnquiryPrepared(true);

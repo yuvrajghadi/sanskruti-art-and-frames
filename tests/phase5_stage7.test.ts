@@ -115,7 +115,7 @@ console.log('[PASS] 2. Non-monetary dispatch tier preference persists across sav
 
 // 3. Genuine Sample Kit WhatsApp Handoff URL
 const sampleUrl = getIndianWhatsAppUrl('Namaste Sanskruti Arts! Request Trade Sample Kit for Pune.');
-assert(sampleUrl.startsWith('https://wa.me/919820000000?text='));
+assert(sampleUrl.startsWith('https://wa.me/918793242979?text='));
 assert(decodeURIComponent(sampleUrl).includes('Trade Sample Kit'));
 console.log('[PASS] 3. Sample kit enquiry URL uses verified WhatsApp builder cleanly');
 

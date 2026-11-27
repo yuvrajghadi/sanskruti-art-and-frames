@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FrameSample, DimensionUnit, MatOption, ArtworkOption, CurrencyCode } from '../types';
 import { calculateFramePrice, formatINR, getMouldingFootRateINR, GST_RATE } from '../utils/pricing';
 import { formatWhatsAppQuoteUrl, WHATSAPP_DISPLAY_PHONE } from '../utils/whatsapp';
+import { saveLead } from '../utils/leadStorage';
 import { GlazingOption, MountingOption, GLAZING_OPTIONS, MOUNTING_OPTIONS } from './CustomFramingStudio';
 import { 
   X, 
@@ -70,8 +71,22 @@ export const AtelierQuoteModal: React.FC<AtelierQuoteModalProps> = ({
 
   const activeArt = customArtUrl || selectedArtwork.imageUrl;
 
+  const persistModalQuickLead = (noteSuffix: string) => {
+    saveLead({
+      leadType: 'quick_quote',
+      clientName: customerName.trim() || 'Atelier Quote Client',
+      mobile: customerPhone.trim() || 'Not provided',
+      cityOrPin: [customerCity.trim(), customerState.trim(), customerPin.trim() ? `PIN ${customerPin.trim()}` : ''].filter(Boolean).join(', '),
+      skus: [selectedFrame.id],
+      configurationUrl: typeof window !== 'undefined' ? window.location.href : `/studio/${selectedFrame.id}`,
+      estimatedTotalINR: grandTotal,
+      notes: `${width}×${height} ${unit} · ${selectedMat.name} · ${activeGlazing.name} (${noteSuffix})`,
+    });
+  };
+
   const handleAuthorize = () => {
     setIsAuthorizing(true);
+    persistModalQuickLead('Quick Quote Authorized');
     setTimeout(() => {
       setIsAuthorizing(false);
       setIsAuthorized(true);
@@ -451,6 +466,7 @@ export const AtelierQuoteModal: React.FC<AtelierQuoteModalProps> = ({
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => persistModalQuickLead('WhatsApp Quick Quote')}
               className="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white font-semibold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-xs"
             >
               <MessageCircle className="w-4 h-4" />

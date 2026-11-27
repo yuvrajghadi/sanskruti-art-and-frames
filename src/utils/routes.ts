@@ -1,11 +1,17 @@
 export type AppRoute = 'home' | 'catalog' | 'configure' | 'studio' | 'review' | 'product' | 'quotation' | 'quotations';
 
+export type RoutePresetIntent =
+  | 'custom-photo-framing'
+  | 'canvas-framing'
+  | 'wholesale-mouldings';
+
 export interface RouteInfo {
   route: AppRoute;
   path: string;
   frameId?: string;
   quotationId?: string;
   isPrintMode?: boolean;
+  presetIntent?: RoutePresetIntent;
   search?: string;
   queryParams?: Record<string, string>;
 }
@@ -43,6 +49,36 @@ export function parseRoute(pathname: string): RouteInfo {
   if (clean === '/catalog' || clean.startsWith('/catalog/')) {
     const parts = clean.split('/');
     return { route: 'catalog', path: '/catalog', frameId: parts[2], search, queryParams };
+  }
+
+  if (clean === '/wholesale-mouldings') {
+    return {
+      route: 'catalog',
+      path: '/wholesale-mouldings',
+      presetIntent: 'wholesale-mouldings',
+      search,
+      queryParams,
+    };
+  }
+
+  if (clean === '/custom-photo-framing') {
+    return {
+      route: 'configure',
+      path: '/custom-photo-framing',
+      presetIntent: 'custom-photo-framing',
+      search,
+      queryParams,
+    };
+  }
+
+  if (clean === '/canvas-framing') {
+    return {
+      route: 'configure',
+      path: '/canvas-framing',
+      presetIntent: 'canvas-framing',
+      search,
+      queryParams,
+    };
   }
 
   if (clean === '/product' || clean.startsWith('/product/')) {

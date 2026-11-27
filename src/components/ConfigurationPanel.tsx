@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { FrameSample, DimensionUnit, MatOption, ArtworkOption, CurrencyCode } from '../types';
 import { MAT_OPTIONS, ARTWORK_OPTIONS, PRESET_DIMENSIONS } from '../data/frames';
 import { calculateFramePrice, getAspectRatioLabel, formatINR, getMouldingFootRateINR, GST_RATE } from '../utils/pricing';
-import { formatWhatsAppQuoteUrl } from '../utils/whatsapp';
+import { formatWhatsAppQuoteUrl, getIndianWhatsAppUrl } from '../utils/whatsapp';
+import { saveLead } from '../utils/leadStorage';
 import { 
   Sparkles, 
   Upload, 
@@ -443,9 +444,12 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
 
           {/* Museum Cavity Presets */}
           <div className="pt-1">
-            <span className="text-[10px] uppercase font-bold text-[#727874] tracking-wider block mb-1.5">
+            <span className="text-[10px] uppercase font-bold text-[#727874] tracking-wider block mb-1">
               Standard Museum Cavity Sizes:
             </span>
+            <p className="text-[11px] text-[#5A615C] mb-2 leading-snug">
+              Measure only your artwork sheet or canvas; any mat border and frame relief are added outward automatically.
+            </p>
             <div className="grid grid-cols-5 gap-1.5">
               {PRESET_DIMENSIONS.map((p) => {
                 const targetW = unit === 'cm' ? Math.round(p.width * 2.54) : p.width;
@@ -471,6 +475,28 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
                 );
               })}
             </div>
+
+            <a
+              href={getIndianWhatsAppUrl(
+                `Namaste Sanskruti Arts! I need help measuring my artwork size for custom framing (considering #${selectedFrame.id} — ${selectedFrame.name}). Can I share a photo of my artwork?`
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() =>
+                saveLead({
+                  leadType: 'quick_quote',
+                  clientName: 'Sizing Help Visitor',
+                  skus: [selectedFrame.id],
+                  configurationUrl: typeof window !== 'undefined' ? window.location.href : '/configurator',
+                  notes: 'Requested sizing guidance via WhatsApp from Step 1',
+                })
+              }
+              data-testid="sizing-whatsapp-help"
+              className="mt-2.5 w-full py-2 px-3 rounded-lg border border-[#E8E4DA] bg-[#FAF9F6] hover:bg-white text-[11px] font-semibold text-[#24382F] flex items-center justify-center gap-1.5 transition-colors"
+            >
+              <MessageCircle className="w-3.5 h-3.5 text-[#25D366]" />
+              <span>Not sure about size? Send artwork photo on WhatsApp</span>
+            </a>
           </div>
         </section>
 
@@ -491,6 +517,9 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
               {selectedMat.id === 'mat-none' ? 'Full Bleed' : `${matReveal.toFixed(2)}" (${(matReveal * 25.4).toFixed(0)}mm)`}
             </span>
           </div>
+          <p className="text-[11px] text-[#5A615C] leading-snug">
+            Acid-free cotton board frames the art cleanly and creates an air gap so paper prints never stick to the glazing.
+          </p>
 
           {/* Mat Option Cards */}
           <div className="grid grid-cols-2 gap-2 pt-1">
@@ -708,9 +737,12 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
             <div className="p-4 pt-1 space-y-4 border-t border-[#E8E4DA] bg-white">
               {/* Conservation Glazing */}
               <div>
-                <span className="text-xs font-bold text-[#24382F] block mb-2">
+                <span className="text-xs font-bold text-[#24382F] block mb-0.5">
                   Conservation Glazing Tier
                 </span>
+                <p className="text-[11px] text-[#5A615C] mb-2 leading-snug">
+                  Choose shatterproof Museum UV Acrylic to stop fading and reflections, Standard Lucite for everyday prints, or Open Canvas for oils.
+                </p>
                 <div className="space-y-1.5">
                   {GLAZING_OPTIONS.map((g) => {
                     const isSelectedGlazing = selectedGlazing.id === g.id;
@@ -913,6 +945,16 @@ export const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
           })}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() =>
+            saveLead({
+              leadType: 'quick_quote',
+              clientName: 'Studio Configurator Client',
+              skus: [selectedFrame.id],
+              configurationUrl: typeof window !== 'undefined' ? window.location.href : '/configurator',
+              estimatedTotalINR: totalPrice,
+              notes: `${width}×${height} ${unit} · ${selectedMat.name} · ${selectedGlazing.name}`,
+            })
+          }
           className="w-full py-2.5 px-3 rounded-xl bg-[#25D366] hover:bg-[#20BA5A] text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-xs"
         >
           <MessageCircle className="w-4 h-4" />

@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FrameSample, DimensionUnit, MatOption, ArtworkOption, ViewMode, GeneratedMockup } from './types';
 import { FRAME_SAMPLES, MAT_OPTIONS, ARTWORK_OPTIONS } from './data/frames';
 import { getInitialMouldings, resetMouldingsStorage, saveMouldingsToStorage } from './utils/mouldingStorage';
 import { parseRoute } from './utils/routes';
 import { prewarmMouldingTextures } from './utils/mouldingReconstruction';
 import { serializeConfigToQuery, deserializeConfigFromQuery } from './utils/frameConfig';
+import { useDocumentMeta } from './utils/seo';
+import { isPlaceholderWhatsAppConfigured, warnIfPlaceholderWhatsAppInProd } from './utils/whatsapp';
 import { Header, AppWorkflowTab } from './components/Header';
 import { SidebarCatalog } from './components/SidebarCatalog';
 import { ProductDetailPage } from './components/ProductDetailPage';
@@ -97,6 +99,9 @@ export function App() {
       const matched = framesList.find((f) => f.id === targetId) || FRAME_SAMPLES.find((f) => f.id === targetId);
       if (matched) return matched;
     }
+    if (routeInfo.presetIntent === 'custom-photo-framing') {
+      return framesList.find((f) => f.id === 'SAA-MHG-23') || framesList[0] || FRAME_SAMPLES[0];
+    }
     return framesList[0] || FRAME_SAMPLES[0];
   });
 
@@ -104,6 +109,15 @@ export function App() {
   useEffect(() => {
     prewarmMouldingTextures(framesList);
   }, [framesList]);
+
+  // Warn in production if VITE_WHATSAPP_NUMBER is missing or still placeholder
+  const [showPlaceholderWaBanner, setShowPlaceholderWaBanner] = useState<boolean>(() => {
+    const isProd = typeof import.meta !== 'undefined' && Boolean((import.meta as any).env?.PROD);
+    return isProd && isPlaceholderWhatsAppConfigured();
+  });
+  useEffect(() => {
+    warnIfPlaceholderWhatsAppInProd();
+  }, []);
 
   // Deep-linking: sync selected frame if URL contains a specific frameId
   useEffect(() => {
@@ -127,6 +141,9 @@ export function App() {
       if (matchedMat) {
         return initialParams.matWidth ? { ...matchedMat, borderWidth: initialParams.matWidth } : matchedMat;
       }
+    }
+    if (routeInfo.presetIntent === 'canvas-framing') {
+      return MAT_OPTIONS.find((m) => m.id === 'mat-none') || MAT_OPTIONS[0];
     }
     return MAT_OPTIONS[0];
   });
@@ -177,6 +194,9 @@ export function App() {
       const matched = GLAZING_OPTIONS.find(g => g.id === initialParams.glazingId);
       if (matched) return matched;
     }
+    if (routeInfo.presetIntent === 'canvas-framing') {
+      return GLAZING_OPTIONS.find((g) => g.id === 'none') || GLAZING_OPTIONS[0];
+    }
     return GLAZING_OPTIONS[0];
   });
   const [selectedMounting, setSelectedMounting] = useState<MountingOption>(() => {
@@ -188,6 +208,33 @@ export function App() {
   });
   const [viewMode, setViewMode] = useState<ViewMode>(() => (routeInfo.route === 'studio' ? '3d' : '2d'));
   const [generatedMockup, setGeneratedMockup] = useState<GeneratedMockup | null>(null);
+
+  // Apply high-intent SEO route defaults when navigating client-side to alias entry paths
+  const appliedPresetIntentRef = useRef(routeInfo.presetIntent);
+  useEffect(() => {
+    if (routeInfo.presetIntent && routeInfo.presetIntent !== appliedPresetIntentRef.current) {
+      appliedPresetIntentRef.current = routeInfo.presetIntent;
+      if (routeInfo.presetIntent === 'custom-photo-framing') {
+        const preferred =
+          framesList.find((f) => f.id === 'SAA-MHG-23') ||
+          framesList.find((f) => f.isWorkshopSample) ||
+          framesList[0];
+        if (preferred) setSelectedFrame(preferred);
+        setWidth(16);
+        setHeight(20);
+        setDimensionUnit('in');
+        setSelectedMat(MAT_OPTIONS[0]);
+        setSelectedGlazing(GLAZING_OPTIONS[0]);
+      } else if (routeInfo.presetIntent === 'canvas-framing') {
+        const noMat = MAT_OPTIONS.find((m) => m.id === 'mat-none');
+        const openCanvas = GLAZING_OPTIONS.find((g) => g.id === 'none');
+        if (noMat) setSelectedMat(noMat);
+        if (openCanvas) setSelectedGlazing(openCanvas);
+      }
+    } else if (!routeInfo.presetIntent) {
+      appliedPresetIntentRef.current = undefined;
+    }
+  }, [routeInfo.presetIntent, framesList]);
 
   // Synchronize state changes into live shareable URL query parameters without page reload
   useEffect(() => {
@@ -209,15 +256,18 @@ export function App() {
         mountingId: selectedMounting.id,
         wallColor: 'stone',
       });
-      const basePath = routeInfo.route === 'studio'
-        ? (selectedFrame ? `/studio/${selectedFrame.id}` : '/studio')
-        : (selectedFrame ? `/configurator/${selectedFrame.id}` : '/configurator');
+      const basePath =
+        routeInfo.presetIntent === 'custom-photo-framing' || routeInfo.presetIntent === 'canvas-framing'
+          ? routeInfo.path
+          : routeInfo.route === 'studio'
+          ? (selectedFrame ? `/studio/${selectedFrame.id}` : '/studio')
+          : (selectedFrame ? `/configurator/${selectedFrame.id}` : '/configurator');
       const targetUrl = `${basePath}${qs}`;
       if (window.location.pathname + window.location.search !== targetUrl) {
         window.history.replaceState({}, '', targetUrl);
       }
     }
-  }, [selectedFrame, width, height, dimensionUnit, selectedMat, artworkFit, selectedArtwork, selectedGlazing, selectedMounting, routeInfo.route]);
+  }, [selectedFrame, width, height, dimensionUnit, selectedMat, artworkFit, selectedArtwork, selectedGlazing, selectedMounting, routeInfo.route, routeInfo.presetIntent, routeInfo.path]);
 
   // Sync viewMode with route
   useEffect(() => {
@@ -668,17 +718,44 @@ export function App() {
     }
   };
 
+  const activeProductFrame =
+    (routeInfo.route === 'product' || (routeInfo.route === 'catalog' && Boolean(routeInfo.frameId))) &&
+    routeInfo.frameId
+      ? resolveProfile(routeInfo.frameId, framesList) || null
+      : null;
+
+  useDocumentMeta(routeInfo, selectedFrame, activeProductFrame);
+
   // =========================================================================
   // ROUTE 1: HOMEPAGE / LANDING PAGE (/)
   // =========================================================================
   if (routeInfo.route === 'home') {
     return (
-      <LandingPage
-        onNavigateToConfigurator={handleLandingNavigate}
-        savedQuotationsCount={savedQuotationsCount}
-        searchQuery={catalogSearchQuery}
-        onSearchQuery={setCatalogSearchQuery}
-      />
+      <>
+        {showPlaceholderWaBanner && (
+          <div
+            data-testid="whatsapp-placeholder-warning"
+            className="bg-amber-950 text-amber-100 text-[11px] font-mono px-4 py-1.5 flex items-center justify-between gap-3 border-b border-amber-700/60"
+          >
+            <span>
+              Notice: <code>VITE_WHATSAPP_NUMBER</code> is unset (using placeholder +91 98200 00000). Set live business WhatsApp before production launch.
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowPlaceholderWaBanner(false)}
+              className="underline text-amber-300 shrink-0 cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+        <LandingPage
+          onNavigateToConfigurator={handleLandingNavigate}
+          savedQuotationsCount={savedQuotationsCount}
+          searchQuery={catalogSearchQuery}
+          onSearchQuery={setCatalogSearchQuery}
+        />
+      </>
     );
   }
 
@@ -689,6 +766,23 @@ export function App() {
 
   return (
     <div className="flex flex-col min-h-screen bg-light-surface text-light-on-surface font-body antialiased print-flow-reset">
+      {!isDedicatedPrintView && showPlaceholderWaBanner && (
+        <div
+          data-testid="whatsapp-placeholder-warning"
+          className="print:hidden no-print bg-amber-950 text-amber-100 text-[11px] font-mono px-4 py-1.5 flex items-center justify-between gap-3 border-b border-amber-700/60"
+        >
+          <span>
+            Notice: <code>VITE_WHATSAPP_NUMBER</code> is unset (using placeholder +91 98200 00000). Set live business WhatsApp before production launch.
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowPlaceholderWaBanner(false)}
+            className="underline text-amber-300 shrink-0 cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
       {/* Top Application Header with Stitch Crest, Home link, and Workflow Pills */}
       {!isDedicatedPrintView && (
         <div className="print:hidden no-print">
@@ -811,6 +905,7 @@ export function App() {
                   setFramesList(reset);
                 }}
                 isFullView={true}
+                initialWholesaleMode={routeInfo.presetIntent === 'wholesale-mouldings'}
               />
             </div>
             <Footer

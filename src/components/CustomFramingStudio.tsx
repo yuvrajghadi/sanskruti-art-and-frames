@@ -17,7 +17,8 @@ import {
   GST_RATE, 
   getAspectRatioLabel 
 } from '../utils/pricing';
-import { formatWhatsAppQuoteUrl } from '../utils/whatsapp';
+import { formatWhatsAppQuoteUrl, getIndianWhatsAppUrl } from '../utils/whatsapp';
+import { saveLead } from '../utils/leadStorage';
 import { 
   ArrowRight, 
   MessageCircle, 
@@ -251,18 +252,34 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
   selectedMounting: propMounting,
   onMountingChange,
 }) => {
-  // Stage controls
-  const [stageMode, setStageMode] = useState<'render' | 'blueprint' | '3d'>(() => 
-    viewMode === '3d' ? '3d' : 'render'
+  // Stage controls (Mobile-first 2D default < 768px until user explicitly inspects 3D)
+  const [isMobileViewport, setIsMobileViewport] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
   );
+  const [mobile3DApproved, setMobile3DApproved] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onResize = () => setIsMobileViewport(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  const [stageMode, setStageMode] = useState<'render' | 'blueprint' | '3d'>(() => {
+    const mobileInitial = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+    return viewMode === '3d' && !mobileInitial ? '3d' : 'render';
+  });
 
   // Sync stageMode cleanly whenever top-level route/viewMode changes (e.g., Header 2D <-> 3D tab navigation)
   useEffect(() => {
     setStageMode((prev) => {
-      if (viewMode === '3d') return '3d';
+      if (viewMode === '3d') {
+        if (isMobileViewport && !mobile3DApproved) return 'render';
+        return '3d';
+      }
       return prev === '3d' ? 'render' : prev;
     });
-  }, [viewMode]);
+  }, [viewMode, isMobileViewport, mobile3DApproved]);
   const [wallColorPreset, setWallColorPreset] = useState<WallColorPreset>('warm-ivory');
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -423,7 +440,7 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
     gstAmount,
     estimatedPrice: totalPrice,
     shareUrl: typeof window !== 'undefined' ? window.location.href : undefined,
-  }) : `https://wa.me/919820000000?text=${encodeURIComponent('Hello Sanskruti Arts, I would like to enquire about bespoke custom framing.')}`;
+  }) : getIndianWhatsAppUrl('Hello Sanskruti Arts, I would like to enquire about bespoke custom framing.');
 
   return (
     <div className="flex-1 flex flex-col bg-[#F7F5EF] text-[#191C1A] font-body">
@@ -522,10 +539,11 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
             {/* Viewport Top Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-2.5 rounded-sm border border-[#E8E4DA] shadow-xs">
               {/* View Modes */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center flex-wrap gap-1">
                 <button
                   type="button"
                   onClick={() => {
+                    setMobile3DApproved(false);
                     setStageMode('render');
                     onViewModeChange('2d');
                   }}
@@ -542,6 +560,7 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                 <button
                   type="button"
                   onClick={() => {
+                    setMobile3DApproved(false);
                     setStageMode('blueprint');
                     onViewModeChange('2d');
                   }}
@@ -557,7 +576,9 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
 
                 <button
                   type="button"
+                  data-testid="studio-inspect-3d-btn"
                   onClick={() => {
+                    setMobile3DApproved(true);
                     setStageMode('3d');
                     onViewModeChange('3d');
                   }}
@@ -568,7 +589,7 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                   }`}
                 >
                   <Box className="w-3.5 h-3.5" />
-                  <span>3D Perspective</span>
+                  <span>{isMobileViewport && stageMode !== '3d' ? 'Inspect in 3D Studio' : '3D Perspective'}</span>
                 </button>
               </div>
 
@@ -938,6 +959,34 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                 </div>
               </div>
 
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-0.5">
+                <p className="text-[11px] text-[#5A615C] leading-snug">
+                  Enter artwork size only; mat border and frame relief add to the outer wall footprint.
+                </p>
+                <a
+                  href={getIndianWhatsAppUrl(
+                    `Namaste Sanskruti Arts! I am not sure how to measure my artwork for framing (looking at #${activeFrame.id} — ${activeFrame.name}). Can I send a photo of my artwork for sizing guidance?`
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid="studio-sizing-whatsapp-help"
+                  onClick={() =>
+                    saveLead({
+                      leadType: 'quick_quote',
+                      clientName: 'Studio Sizing Help Visitor',
+                      skus: [activeFrame.id],
+                      configurationUrl: typeof window !== 'undefined' ? window.location.href : '/configurator',
+                      estimatedTotalINR: totalPrice,
+                      notes: `Requested artwork sizing assistance (${width}×${height} ${unit})`,
+                    })
+                  }
+                  className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#1B3B2B] hover:text-[#7A4B28] underline shrink-0"
+                >
+                  <MessageCircle className="w-3.5 h-3.5 text-[#25D366]" />
+                  <span>Not sure about size? Send artwork photo on WhatsApp</span>
+                </a>
+              </div>
+
               {/* Artwork Aperture & Upload Source */}
               <div className="pt-3 border-t border-[#E8E4DA] space-y-2.5">
                 <div className="flex items-center justify-between">
@@ -1169,6 +1218,9 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                   Archival Acid-Free Core
                 </span>
               </div>
+              <p className="text-[11px] text-[#5A615C] leading-snug">
+                Creates gallery breathing room around your artwork and prevents paper prints from contacting the glazing.
+              </p>
 
               {/* Matboard Swatches */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -1251,6 +1303,9 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                   99% UV Barrier
                 </span>
               </div>
+              <p className="text-[11px] text-[#5A615C] leading-snug">
+                Select anti-reflective shatterproof Museum Acrylic to block fading &amp; glare, Standard Lucite for daily prints, or Open Canvas for oils.
+              </p>
 
               <div className="space-y-2">
                 {GLAZING_OPTIONS.map((opt) => {
@@ -1429,6 +1484,16 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() =>
+                    saveLead({
+                      leadType: 'quick_quote',
+                      clientName: 'Studio Configurator Client',
+                      skus: [activeFrame.id],
+                      configurationUrl: typeof window !== 'undefined' ? window.location.href : '/configurator',
+                      estimatedTotalINR: totalPrice,
+                      notes: `${width}×${height} ${unit} · ${selectedMat.name} · ${selectedGlazing.name}`,
+                    })
+                  }
                   className="bg-white/10 hover:bg-white/20 text-white border border-[#2C523F] py-3 px-4 rounded-sm text-xs font-semibold uppercase tracking-wider text-center transition-colors flex items-center justify-center gap-2"
                 >
                   <MessageCircle className="w-4 h-4 text-[#25D366]" />
@@ -1487,6 +1552,16 @@ export const CustomFramingStudio: React.FC<CustomFramingStudioProps> = ({
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() =>
+                  saveLead({
+                    leadType: 'quick_quote',
+                    clientName: 'Studio Configurator Client',
+                    skus: [activeFrame.id],
+                    configurationUrl: typeof window !== 'undefined' ? window.location.href : '/configurator',
+                    estimatedTotalINR: totalPrice,
+                    notes: `${width}×${height} ${unit} · ${selectedMat.name} · ${selectedGlazing.name}`,
+                  })
+                }
                 className="hidden sm:inline-flex items-center justify-center gap-1.5 bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#1B3B2B] px-3.5 py-2.5 rounded-sm text-xs font-semibold uppercase tracking-wider transition-colors border border-[#25D366]/30"
                 title="Direct consultation on WhatsApp"
               >
